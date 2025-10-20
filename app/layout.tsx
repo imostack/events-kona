@@ -1,25 +1,25 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import "./globals.css"
+import type React from "react";
+import type { Metadata } from "next";
+import { GeistSans, GeistMono } from "geist/font";
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "EventsKona - Discover & Create Events",
   description: "Discover, create, and manage amazing events with EventsKona",
-  generator: "v0.app",
-}
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <body className={`font-sans antialiased`}>{children}</body>
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable} font-sans`}
+    >
+      <body>{children}</body>
     </html>
-  )
+  );
 }

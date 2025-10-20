@@ -1,9 +1,16 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
+/* Geist fonts variables */
 :root {
+  --geist-sans: "Geist", "Geist Fallback";
+  --geist-mono: "Geist Mono", "Geist Mono Fallback";
+
   /* EventsKona Color System - Modern & Energetic */
   --background: oklch(0.98 0 0);
   --foreground: oklch(0.15 0 0);
@@ -116,11 +123,17 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Base styles */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  html {
+    font-family: var(--font-geist-sans);
+    background-color: var(--background);
+    color: var(--foreground);
   }
   body {
-    @apply bg-background text-foreground;
+    @apply min-h-screen flex flex-col;
+  }
+  a {
+    @apply text-primary hover:text-primary-80 transition-colors;
   }
 }

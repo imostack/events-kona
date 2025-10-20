@@ -1,91 +1,108 @@
-# events-kona
-Events Ticketing Platform
+# EventsKona
 
-EventsKona
+EventsKona is a **Next.js (React + TypeScript)** web application for creating, managing, and discovering events.  
+It leverages **Next.js 15** for server-side rendering, **Tailwind CSS** for styling, and **Radix UI** for accessible, modern UI components.
 
-EventsKona is a modern event discovery and ticketing platform built with React and TypeScript. It allows users to explore events, register, and manage event details through a clean, intuitive interface.
-This version focuses on the frontend implementation — backend integration will follow in later phases.
+## 🚀 Features
+- Create and manage events
+- User authentication (coming soon)
+- Dynamic event pages with SEO optimization
+- Responsive, accessible UI with Radix and Tailwind
+- Deployed on **Vercel**
 
-🚀 Features
+## 🛠️ Tech Stack
+- **Framework:** Next.js 15 (React 19 + TypeScript)
+- **Styling:** Tailwind CSS 4 + tailwind-animate
+- **UI Components:** Radix UI, Lucide React
+- **State/Form Handling:** React Hook Form, Zod
+- **Data Visualization:** Recharts
+- **Deployment:** Vercel
 
-🗓️ Create and manage events (UI only for now)
+## 🧩 Scripts
+- `npm run dev` – start development server
+- `npm run build` – build for production
+- `npm start` – start production server
 
-🎟️ Event ticket and details display
+---
 
-🔍 Browse and search for events
-
-📱 Fully responsive design
-
-⚡ Fast, modern, and lightweight React TypeScript setup
-
-🧱 Tech Stack
-
-Framework: React + TypeScript
-
-Styling: CSS
-
-Build Tool: Vite (or Create React App — adjust if needed)
-
-Deployment: Vercel
-
-⚙️ Getting Started
-1. Clone the repository
-git clone git@github.com:imostack/events-kona.git
-cd events-kona
-
-2. Install dependencies
-npm install
-
-3. Run locally
-npm run dev
-
-4. Build for production
-npm run build
-
-5. Deploy to Vercel
-
-Log in to Vercel
-
-Import this GitHub repository
-
-Vercel will automatically detect the React + TypeScript setup
-
-Deploy instantly 🚀
-
-🧩 Folder Structure
+## 🧱 Folder Structure
 events-kona/
 │
-├── public/              # Static assets
-├── src/
-│   ├── components/      # Reusable UI components
-│   ├── pages/           # Page components (Home, Event Details, etc.)
-│   ├── styles/          # CSS files
-│   ├── types/           # TypeScript interfaces and types
-│   └── main.tsx         # App entry point
+├── .next/ # Next.js build output (auto-generated)
+├── app/ # Application routes (App Router)
+│ ├── create-event/ # Create Event page
+│ ├── event/[id]/ # Event details page
+│ ├── login/ # Authentication page
+│ └── my-events/ # User’s event dashboard
 │
-├── package.json         # Dependencies and scripts
-├── tsconfig.json        # TypeScript config
+├── components/ # Reusable UI components
+├── hooks/ # Custom React hooks
+├── lib/ # Helper functions and configurations
+├── public/ # Static assets (images, icons, etc.)
+├── styles/ # Global and module-based CSS files
+├── package.json
 └── README.md
 
-Future Enhancements
 
-Backend integration (Node.js / Firebase)
+---
 
-User authentication
+## ⚙️ Available Scripts
 
-Real-time event updates
+| Command | Description |
+|----------|-------------|
+| `npm run dev` | Start the development server |
+| `npm run build` | Build the project for production |
+| `npm start` | Run the production build |
+| `npm run lint` | Run lint checks |
 
-Payment and ticket validation system
+---
 
-Organizer dashboard
+## 💡 Getting Started
 
-👤 Author
+1. **Clone the repository**  
+   ```bash
+   git clone https://github.com/imostack/events-kona.git
+   cd events-kona
 
-Imoyin J. Sampson
-Product Designer & Frontend Developer | Cloud Engineer | Founder @ App Guts
+Install dependencies
+
+npm install
 
 
-🪪 License
+Start the development server
 
-This project is licensed under the MIT License — any commercial use is prohibited.
+npm run dev
 
+
+Open in browser
+
+http://localhost:3000
+
+
+🌐 Deployment
+
+This project is hosted on Vercel, which supports automatic builds and deployments from GitHub.
+For local production testing:
+
+npm run build
+npm start
+
+🧩 Future Enhancements
+
+🔑 User authentication (email and social logins)
+
+💳 Event ticketing and payments integration
+
+📡 Real-time event updates
+
+📊 Admin dashboard and analytics
+
+👨‍💻 Author
+
+Imoyin Sampson
+Product Designer | Frontend Developer
+
+License
+
+This project is under the MIT License | commercial usage without approval is prohibited
+.

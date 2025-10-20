@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
@@ -42,7 +40,6 @@ export default function CreateEventPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-
     if (validateForm()) {
       setSubmitted(true)
       setTimeout(() => {
@@ -61,28 +58,17 @@ export default function CreateEventPage() {
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }))
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }))
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        image: file,
-      }))
-    }
+    if (file) setFormData((prev) => ({ ...prev, image: file }))
   }
 
   return (
@@ -92,11 +78,10 @@ export default function CreateEventPage() {
       <main className="flex-1">
         {/* Back Button */}
         <div className="bg-card border-b border-border px-4 py-4">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <Link href="/">
               <button className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                <ArrowLeft size={20} />
-                Back to Home
+                <ArrowLeft size={20} /> Back to Home
               </button>
             </Link>
           </div>
@@ -104,12 +89,14 @@ export default function CreateEventPage() {
 
         {/* Form Section */}
         <section className="py-12 px-4">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <h1 className="text-4xl font-bold mb-2 text-foreground">Create Your Event</h1>
-            <p className="text-muted-foreground mb-8">Fill in the details below to create and share your event</p>
+            <p className="text-muted-foreground mb-8">
+              Fill in the details below to create and share your event
+            </p>
 
             {submitted && (
-              <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6">
+              <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6 text-center">
                 ✓ Event created successfully! Redirecting...
               </div>
             )}
@@ -117,7 +104,9 @@ export default function CreateEventPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Event Title */}
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">Event Title *</label>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Event Title *
+                </label>
                 <input
                   type="text"
                   name="title"
@@ -133,7 +122,9 @@ export default function CreateEventPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">Description *</label>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Description *
+                </label>
                 <textarea
                   name="description"
                   value={formData.description}
@@ -144,7 +135,9 @@ export default function CreateEventPage() {
                     errors.description ? "border-destructive" : "border-border"
                   }`}
                 />
-                {errors.description && <p className="text-destructive text-sm mt-1">{errors.description}</p>}
+                {errors.description && (
+                  <p className="text-destructive text-sm mt-1">{errors.description}</p>
+                )}
               </div>
 
               {/* Date and Time */}
@@ -190,13 +183,17 @@ export default function CreateEventPage() {
                     errors.location ? "border-destructive" : "border-border"
                   }`}
                 />
-                {errors.location && <p className="text-destructive text-sm mt-1">{errors.location}</p>}
+                {errors.location && (
+                  <p className="text-destructive text-sm mt-1">{errors.location}</p>
+                )}
               </div>
 
               {/* Price and Category */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">Price (USD) *</label>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Price (USD) *
+                  </label>
                   <input
                     type="number"
                     name="price"
@@ -209,7 +206,9 @@ export default function CreateEventPage() {
                       errors.price ? "border-destructive" : "border-border"
                     }`}
                   />
-                  {errors.price && <p className="text-destructive text-sm mt-1">{errors.price}</p>}
+                  {errors.price && (
+                    <p className="text-destructive text-sm mt-1">{errors.price}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-2">Category</label>
@@ -249,8 +248,8 @@ export default function CreateEventPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <div className="flex gap-4 pt-6">
+              {/* Submit Buttons */}
+              <div className="flex flex-col md:flex-row gap-4 pt-6">
                 <button
                   type="submit"
                   className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
@@ -258,10 +257,7 @@ export default function CreateEventPage() {
                   Create Event
                 </button>
                 <Link href="/">
-                  <button
-                    type="button"
-                    className="flex-1 border border-border text-foreground py-3 rounded-lg font-semibold hover:bg-muted transition-colors"
-                  >
+                  <button className="flex-1 border border-border text-foreground py-3 rounded-lg font-semibold hover:bg-muted transition-colors">
                     Cancel
                   </button>
                 </Link>
