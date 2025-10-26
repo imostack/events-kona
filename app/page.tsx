@@ -57,7 +57,7 @@ export default function Home() {
               Discover Amazing Events
             </h1>
             <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Find, create, and manage events that matter to you
+              Find, create, and manage all kind of events
             </p>
             <Link href="/create-event">
               <button className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-3 rounded-lg font-semibold flex items-center gap-2 mx-auto transition-colors">
