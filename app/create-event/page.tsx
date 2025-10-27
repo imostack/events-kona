@@ -192,7 +192,7 @@ export default function CreateEventPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-2">
-                    Price (USD) *
+                    Price (NGN) *
                   </label>
                   <input
                     type="number"
