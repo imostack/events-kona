@@ -1,23 +1,28 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, User, Eye, EyeOff } from "lucide-react"
 
-export default function LoginPage() {
+export default function SignUpPage() {
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
-  const [loginSuccess, setLoginSuccess] = useState(false)
+  const [signupSuccess, setSignupSuccess] = useState(false)
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
+
+    if (!name.trim()) {
+      newErrors.name = "Full name is required"
+    }
 
     if (!email.trim()) {
       newErrors.email = "Email is required"
@@ -31,6 +36,10 @@ export default function LoginPage() {
       newErrors.password = "Password must be at least 6 characters"
     }
 
+    if (confirmPassword !== password) {
+      newErrors.confirmPassword = "Passwords do not match"
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -40,14 +49,18 @@ export default function LoginPage() {
 
     if (validateForm()) {
       setIsLoading(true)
+
       // Simulate API call
       setTimeout(() => {
         setIsLoading(false)
-        setLoginSuccess(true)
+        setSignupSuccess(true)
+
         setTimeout(() => {
-          setLoginSuccess(false)
+          setSignupSuccess(false)
+          setName("")
           setEmail("")
           setPassword("")
+          setConfirmPassword("")
         }, 2000)
       }, 1500)
     }
@@ -61,22 +74,43 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Welcome Back</h1>
-            <p className="text-muted-foreground">Sign in to your EventsKona account</p>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Create an Account</h1>
+            <p className="text-muted-foreground">Get started with EventsKona</p>
           </div>
 
           {/* Success Message */}
-          {loginSuccess && (
+          {signupSuccess && (
             <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6 text-center">
-              ✓ Login successful! Redirecting...
+              ✓ Account created successfully!
             </div>
           )}
 
-          {/* Login Form */}
+          {/* Sign Up Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Full Name */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">Full Name</label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 text-muted-foreground" size={20} />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    if (errors.name) setErrors((prev) => ({ ...prev, name: "" }))
+                  }}
+                  placeholder="John Doe"
+                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+                    errors.name ? "border-destructive" : "border-border"
+                  }`}
+                />
+              </div>
+              {errors.name && <p className="text-destructive text-sm mt-1">{errors.name}</p>}
+            </div>
+
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Email Address</label>
+              <label className="block text-sm font-semibold mb-2">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 text-muted-foreground" size={20} />
                 <input
@@ -87,7 +121,7 @@ export default function LoginPage() {
                     if (errors.email) setErrors((prev) => ({ ...prev, email: "" }))
                   }}
                   placeholder="you@example.com"
-                  className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
+                  className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
                     errors.email ? "border-destructive" : "border-border"
                   }`}
                 />
@@ -97,7 +131,7 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Password</label>
+              <label className="block text-sm font-semibold mb-2">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 text-muted-foreground" size={20} />
                 <input
@@ -108,14 +142,14 @@ export default function LoginPage() {
                     if (errors.password) setErrors((prev) => ({ ...prev, password: "" }))
                   }}
                   placeholder="••••••••"
-                  className={`w-full pl-10 pr-10 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
+                  className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
                     errors.password ? "border-destructive" : "border-border"
                   }`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-3 text-muted-foreground"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -123,51 +157,44 @@ export default function LoginPage() {
               {errors.password && <p className="text-destructive text-sm mt-1">{errors.password}</p>}
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-border" />
-                <span className="text-sm text-foreground">Remember me</span>
-              </label>
-              <Link href="/forgot-password" className="text-sm text-primary hover:text-primary/80">
-                Forgot password?
-              </Link>
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">Confirm Password</label>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value)
+                  if (errors.confirmPassword)
+                    setErrors((prev) => ({ ...prev, confirmPassword: "" }))
+                }}
+                placeholder="••••••••"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary ${
+                  errors.confirmPassword ? "border-destructive" : "border-border"
+                }`}
+              />
+              {errors.confirmPassword && (
+                <p className="text-destructive text-sm mt-1">{errors.confirmPassword}</p>
+              )}
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50"
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Creating account..." : "Create Account"}
             </button>
           </form>
 
-          {/* Sign Up Link */}
-          <p className="text-center text-foreground mt-6">
-            Don't have an account?{" "}
-            <Link href="/signup" className="text-primary hover:text-primary/80 font-semibold">
-              Sign up
+          {/* Login Link */}
+          <p className="text-center mt-6">
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary font-semibold">
+              Sign in
             </Link>
           </p>
-
-          {/* Divider */}
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-border"></div>
-            <span className="text-muted-foreground text-sm">or</span>
-            <div className="flex-1 h-px bg-border"></div>
-          </div>
-
-          {/* Social Login */}
-          <div className="space-y-3">
-            <button className="w-full border border-border text-foreground py-2 rounded-lg hover:bg-muted transition-colors font-semibold">
-              Continue with Google
-            </button>
-            <button className="w-full border border-border text-foreground py-2 rounded-lg hover:bg-muted transition-colors font-semibold">
-              Continue with GitHub
-            </button>
-          </div>
         </div>
       </main>
 
