@@ -104,7 +104,7 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="border-t border-border pt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <p className="text-muted-foreground text-sm">© 2025 EventsKona. All rights reserved.</p>
+          <p className="text-muted-foreground text-sm">© 2026 EventsKona. All rights reserved.</p>
           <div className="flex gap-6 text-sm">
             <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy

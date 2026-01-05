@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { Menu, X, Calendar, LogOut, Settings, PlusCircle } from "lucide-react"
+import { Menu, X, Calendar, LogOut, Settings, PlusCircle, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function Navbar() {
@@ -67,6 +67,12 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-foreground">{user?.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                     </div>
+                    <Link href="/profile" onClick={() => setShowUserMenu(false)}>
+                      <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
+                        <User size={18} className="text-muted-foreground" />
+                        <span className="text-sm font-medium">My Profile</span>
+                      </div>
+                    </Link>
                     <Link href="/my-events" onClick={() => setShowUserMenu(false)}>
                       <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
                         <Calendar size={18} className="text-muted-foreground" />
@@ -140,6 +146,11 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <>
+                <Link href="/profile" onClick={() => setIsOpen(false)}>
+                  <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
+                    My Profile
+                  </div>
+                </Link>
                 <Link href="/my-events" onClick={() => setIsOpen(false)}>
                   <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
                     My Events

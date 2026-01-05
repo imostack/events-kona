@@ -5,14 +5,14 @@ import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import EventCard from "@/components/event-card"
-import { mockEvents } from "@/lib/mock-data"
-import { Plus, ArrowLeft } from "lucide-react"
+import type { mockEvents } from "@/lib/mock-data"
+import { Plus, ArrowLeft, Calendar } from "lucide-react"
 
 export default function MyEventsPage() {
   const [filter, setFilter] = useState("all")
 
-  // Mock: user's created events (first 4 events)
-  const userEvents = mockEvents.slice(0, 4)
+  // Mock: user's created events - empty array to show empty state
+  const userEvents: typeof mockEvents = []
 
   const filteredEvents = filter === "all" ? userEvents : userEvents.filter((e) => e.category === filter)
 
@@ -68,10 +68,26 @@ export default function MyEventsPage() {
           </div>
         </section>
 
-        {/* Events Grid */}
+        {/* Events Grid or Empty State */}
         <section className="py-12 px-4">
           <div className="max-w-6xl mx-auto">
-            {filteredEvents.length > 0 ? (
+            {userEvents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="bg-muted rounded-full p-6 mb-6">
+                  <Calendar size={48} className="text-muted-foreground" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">No Events Yet</h2>
+                <p className="text-muted-foreground mb-6 max-w-md">
+                  You haven't created any events yet. Start creating amazing events and share them with your audience.
+                </p>
+                <Link href="/create-event">
+                  <button className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2">
+                    <Plus size={20} />
+                    Create Your First Event
+                  </button>
+                </Link>
+              </div>
+            ) : filteredEvents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
@@ -82,7 +98,7 @@ export default function MyEventsPage() {
                 <p className="text-muted-foreground text-lg mb-4">No events found in this category</p>
                 <Link href="/create-event">
                   <button className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90">
-                    Create Your First Event
+                    Create New Event
                   </button>
                 </Link>
               </div>

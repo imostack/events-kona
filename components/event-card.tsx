@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { Calendar, MapPin, DollarSign, Users } from "lucide-react"
+import { Calendar, MapPin, Users, Star } from "lucide-react"
+import { formatPrice, type Currency } from "@/lib/currency-utils"
 
 interface Event {
   id: string
@@ -7,9 +8,11 @@ interface Event {
   date: string
   location: string
   price: number
+  currency: Currency
   category: string
   image: string
   attendees: number
+  promoted?: boolean
 }
 
 export default function EventCard({ event }: { event: Event }) {
@@ -23,6 +26,12 @@ export default function EventCard({ event }: { event: Event }) {
             alt={event.title}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
+          {event.promoted && (
+            <div className="absolute top-3 left-3 bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md">
+              <Star size={12} fill="currentColor" />
+              Promoted
+            </div>
+          )}
           <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
             {event.category}
           </div>
@@ -53,8 +62,9 @@ export default function EventCard({ event }: { event: Event }) {
           {/* Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-border">
             <div className="flex items-center gap-1">
-              <DollarSign size={16} className="text-accent" />
-              <span className="font-bold text-foreground">{event.price}</span>
+              <span className="font-bold text-foreground text-lg">
+                {formatPrice(event.price, event.currency)}
+              </span>
             </div>
             <button className="bg-primary text-primary-foreground px-4 py-1 rounded text-sm font-semibold hover:bg-primary/90 transition-colors">
               View Details

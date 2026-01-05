@@ -221,6 +221,7 @@ export default function CreateEventPage() {
   )}&output=embed`}
   className="absolute inset-0 w-full h-full opacity-20 grayscale pointer-events-none"
   loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
 />
 
                     <div className="z-10 text-center p-4">
