@@ -8,9 +8,11 @@ import { useRouter } from "next/navigation"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Mail, Lock, Eye, EyeOff, User } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function SignupPage() {
   const router = useRouter()
+  const { signup } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
@@ -35,15 +37,20 @@ export default function SignupPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
       setIsLoading(true)
-      // Simulate account creation
-      setTimeout(() => {
-        setIsLoading(false)
+      try {
+        await signup(email, password, name)
+        // Redirect to onboarding after successful signup
         router.push("/onboarding")
-      }, 1500)
+      } catch (error) {
+        console.error("[v0] Signup error:", error)
+        setErrors({ submit: "Failed to create account. Please try again." })
+      } finally {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -58,6 +65,12 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {errors.submit && (
+              <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg text-sm">
+                {errors.submit}
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-semibold text-foreground mb-2">Full Name</label>
               <div className="relative">

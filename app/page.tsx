@@ -24,41 +24,17 @@ export default function Home() {
   const featuredEvents = mockEvents.slice(0, 3)
   const upcomingEvents = filteredEvents.slice(0, 6)
 
-  const EventCard = ({ event }: { event: typeof mockEvents[0] }) => (
-    <div className="bg-card rounded-lg shadow-md overflow-hidden flex flex-col">
-      <img
-        src={event.image}
-        alt={event.title}
-        className="w-full h-48 md:h-56 lg:h-64 object-cover"
-      />
-      <div className="p-4 flex-1 flex flex-col justify-between">
-        <div>
-          <h3 className="text-lg md:text-xl font-semibold text-foreground">{event.title}</h3>
-          <p className="text-sm text-muted-foreground">{event.location}</p>
-          <p className="text-sm text-muted-foreground">{event.date}</p>
-        </div>
-        <Link href={`/events/${event.id}`}>
-          <button className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 w-full transition-colors">
-            View Event
-          </button>
-        </Link>
-      </div>
-    </div>
-  )
-
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
       <main className="flex-1">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground py-20 px-4">
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Discover Amazing Events
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Find, create, and manage all kind of events
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-balance">Discover Amazing Events</h1>
+            <p className="text-xl md:text-2xl mb-8 opacity-90 text-balance">
+              Find, create, and manage events that matter to you
             </p>
             <Link href="/create-event">
               <button className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-3 rounded-lg font-semibold flex items-center gap-2 mx-auto transition-colors">
@@ -102,7 +78,7 @@ export default function Home() {
         {/* Featured Events */}
         <section className="py-16 px-4">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl font-bold mb-8">Featured Events</h2>
+            <h2 className="text-3xl font-bold mb-8 text-foreground">Featured Events</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {featuredEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
@@ -114,7 +90,7 @@ export default function Home() {
         {/* Upcoming Events */}
         <section className="py-16 px-4 bg-secondary/30">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl font-bold mb-8">Upcoming Events</h2>
+            <h2 className="text-3xl font-bold mb-8 text-foreground">Upcoming Events</h2>
             {upcomingEvents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {upcomingEvents.map((event) => (
@@ -123,9 +99,7 @@ export default function Home() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">
-                  No events found matching your search.
-                </p>
+                <p className="text-muted-foreground text-lg">No events found matching your search.</p>
               </div>
             )}
           </div>

@@ -1,20 +1,22 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
-  const [loginSuccess, setLoginSuccess] = useState(false)
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -35,21 +37,20 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (validateForm()) {
       setIsLoading(true)
-      // Simulate API call
-      setTimeout(() => {
+      try {
+        await login(email, password)
+        router.push("/")
+      } catch (error) {
+        console.error("[v0] Login error:", error)
+        setErrors({ submit: "Invalid email or password. Please try again." })
+      } finally {
         setIsLoading(false)
-        setLoginSuccess(true)
-        setTimeout(() => {
-          setLoginSuccess(false)
-          setEmail("")
-          setPassword("")
-        }, 2000)
-      }, 1500)
+      }
     }
   }
 
@@ -66,11 +67,7 @@ export default function LoginPage() {
           </div>
 
           {/* Success Message */}
-          {loginSuccess && (
-            <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6 text-center">
-              ✓ Login successful! Redirecting...
-            </div>
-          )}
+          {/* Removed loginSuccess state as we use router navigation instead */}
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -129,7 +126,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="w-4 h-4 rounded border-border" />
                 <span className="text-sm text-foreground">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-primary hover:text-primary/80">
+              <Link href="#" className="text-sm text-primary hover:text-primary/80">
                 Forgot password?
               </Link>
             </div>

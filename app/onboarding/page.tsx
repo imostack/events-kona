@@ -3,11 +3,13 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Calendar, ArrowRight, ArrowLeft, Check, Users, MapPin, Search } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 type OnboardingStep = 1 | 2 | 3 | 4
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { updateUser } = useAuth()
   const [step, setStep] = useState<OnboardingStep>(1)
   const [formData, setFormData] = useState({
     role: "", // organizer, attendee, both
@@ -32,6 +34,8 @@ export default function OnboardingPage() {
   }
 
   const handleComplete = () => {
+    updateUser({ hasCompletedOnboarding: true })
+
     // Simulate saving preferences
     setTimeout(() => {
       router.push("/")

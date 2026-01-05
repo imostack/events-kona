@@ -1,27 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useRef, useEffect } from "react"
-import { Menu, X, Calendar, User, LogOut } from "lucide-react"
+import { useState } from "react"
+import { Menu, X, Calendar, LogOut, Settings, PlusCircle } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const { user, isAuthenticated, logout } = useAuth()
 
-  // 🔐 Mock auth state (replace later with Supabase)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [openProfile, setOpenProfile] = useState(false)
-  const profileRef = useRef<HTMLDivElement>(null)
-
-  // Close profile dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setOpenProfile(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+  const handleLogout = () => {
+    logout()
+    setShowUserMenu(false)
+  }
 
   return (
     <nav className="bg-card border-b border-border sticky top-0 z-50">
@@ -42,59 +34,85 @@ export default function Navbar() {
             <Link href="/" className="text-foreground hover:text-primary transition-colors font-semibold">
               Home
             </Link>
-            <Link href="/my-events" className="text-foreground hover:text-primary transition-colors font-semibold">
-              My Events
-            </Link>
-            <Link href="/create-event" className="text-foreground hover:text-primary transition-colors font-semibold">
-              Create Event
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link href="/login" className="text-foreground hover:text-primary transition-colors font-semibold">
-                Sign In
-              </Link>
-              <Link href="/signup">
-                <button className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors font-semibold">
-                  Get Started
-                </button>
-              </Link>
-            ) : (
-              <div className="relative" ref={profileRef}>
-                {/* Avatar */}
-                <button
-                  onClick={() => setOpenProfile(!openProfile)}
-                  className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold"
+            {isAuthenticated && (
+              <>
+                <Link href="/my-events" className="text-foreground hover:text-primary transition-colors font-semibold">
+                  My Events
+                </Link>
+                <Link
+                  href="/create-event"
+                  className="text-foreground hover:text-primary transition-colors font-semibold"
                 >
-                  EK
+                  Create Event
+                </Link>
+              </>
+            )}
+
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors font-semibold"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <span>{user?.name || "User"}</span>
                 </button>
 
-                {/* Dropdown */}
-                {openProfile && (
-                  <div className="absolute right-0 mt-3 w-44 bg-background border border-border rounded-lg shadow-lg overflow-hidden">
-                    <Link
-                      href="/profile"
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-muted text-sm"
-                    >
-                      <User size={16} />
-                      Profile
+                {/* User Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-lg shadow-lg py-2 z-50">
+                    <div className="px-4 py-3 border-b border-border">
+                      <p className="text-sm font-semibold text-foreground">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    </div>
+                    <Link href="/my-events" onClick={() => setShowUserMenu(false)}>
+                      <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
+                        <Calendar size={18} className="text-muted-foreground" />
+                        <span className="text-sm font-medium">My Events</span>
+                      </div>
                     </Link>
-                    <button
-                      onClick={() => {
-                        setIsAuthenticated(false)
-                        setOpenProfile(false)
-                      }}
-                      className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted text-sm text-left"
-                    >
-                      <LogOut size={16} />
-                      Logout
-                    </button>
+                    <Link href="/create-event" onClick={() => setShowUserMenu(false)}>
+                      <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
+                        <PlusCircle size={18} className="text-muted-foreground" />
+                        <span className="text-sm font-medium">Create Event</span>
+                      </div>
+                    </Link>
+                    <Link href="/settings" onClick={() => setShowUserMenu(false)}>
+                      <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
+                        <Settings size={18} className="text-muted-foreground" />
+                        <span className="text-sm font-medium">Settings</span>
+                      </div>
+                    </Link>
+                    <div className="border-t border-border mt-2 pt-2">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-2 hover:bg-muted transition-colors text-left flex items-center gap-3 text-destructive"
+                      >
+                        <LogOut size={18} />
+                        <span className="text-sm font-medium">Sign Out</span>
+                      </button>
+                    </div>
                   </div>
                 )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link href="/login" className="text-foreground hover:text-primary transition-colors font-semibold">
+                  Sign In
+                </Link>
+                <Link href="/signup">
+                  <button className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors font-semibold">
+                    Get Started
+                  </button>
+                </Link>
               </div>
             )}
           </div>
 
           {/* Mobile Menu Button */}
-          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
+          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-foreground hover:text-primary">
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -102,47 +120,67 @@ export default function Navbar() {
         {/* Mobile Menu */}
         {isOpen && (
           <div className="md:hidden mt-4 space-y-3 pb-4">
-            <Link href="/" className="block py-2 font-semibold">
-              Home
-            </Link>
-            <Link href="/my-events" className="block py-2 font-semibold">
-              My Events
-            </Link>
-            <Link href="/create-event" className="block py-2 font-semibold">
-              Create Event
+            {isAuthenticated && user && (
+              <div className="px-4 py-3 bg-muted rounded-lg mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                    {user.name?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{user.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Link href="/" onClick={() => setIsOpen(false)}>
+              <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">Home</div>
             </Link>
 
-            {!isAuthenticated ? (
-              <Link href="/login">
-                <button className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg font-semibold">
-                  Sign In
-                </button>
-              </Link>
-            ) : (
+            {isAuthenticated ? (
               <>
-                <Link href="/profile" className="block py-2 font-semibold">
-                  Profile
+                <Link href="/my-events" onClick={() => setIsOpen(false)}>
+                  <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
+                    My Events
+                  </div>
+                </Link>
+                <Link href="/create-event" onClick={() => setIsOpen(false)}>
+                  <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
+                    Create Event
+                  </div>
+                </Link>
+                <Link href="/settings" onClick={() => setIsOpen(false)}>
+                  <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
+                    Settings
+                  </div>
                 </Link>
                 <button
-                  onClick={() => setIsAuthenticated(false)}
-                  className="w-full bg-muted px-6 py-2 rounded-lg font-semibold"
+                  onClick={() => {
+                    handleLogout()
+                    setIsOpen(false)
+                  }}
+                  className="w-full text-left text-destructive hover:text-destructive/80 transition-colors font-semibold py-2"
                 >
-                  Logout
+                  Sign Out
                 </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setIsOpen(false)}>
+                  <button className="w-full bg-muted text-foreground px-6 py-2 rounded-lg hover:bg-muted/80 transition-colors font-semibold">
+                    Sign In
+                  </button>
+                </Link>
+                <Link href="/signup" onClick={() => setIsOpen(false)}>
+                  <button className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors font-semibold">
+                    Get Started
+                  </button>
+                </Link>
               </>
             )}
           </div>
         )}
-      </div>
-
-      {/* 🔧 TEMP: simulate login (remove later) */}
-      <div className="text-center py-2">
-        <button
-          onClick={() => setIsAuthenticated(true)}
-          className="text-xs text-muted-foreground underline"
-        >
-          Simulate Login
-        </button>
       </div>
     </nav>
   )
