@@ -9,6 +9,7 @@ import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Upload, ArrowLeft, MapPin } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { countryToCurrency, type Currency } from "@/lib/currency-utils"
 
 export default function CreateEventPage() {
   const { user } = useAuth()
@@ -26,13 +27,17 @@ export default function CreateEventPage() {
     date: "",
     time: "",
     location: "",
+    country: "Nigeria" as "Nigeria" | "Ghana" | "Kenya",
     price: "",
+    isFree: false,
     category: "music",
     image: null as File | null,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitted, setSubmitted] = useState(false)
+
+  const currency: Currency = countryToCurrency[formData.country]
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -42,9 +47,12 @@ export default function CreateEventPage() {
     if (!formData.date) newErrors.date = "Date is required"
     if (!formData.time) newErrors.time = "Time is required"
     if (!formData.location.trim()) newErrors.location = "Location is required"
-    if (!formData.price) newErrors.price = "Price is required"
-    if (isNaN(Number(formData.price)) || Number(formData.price) < 0) {
-      newErrors.price = "Price must be a valid number"
+
+    if (!formData.isFree) {
+      if (!formData.price) newErrors.price = "Price is required"
+      if (isNaN(Number(formData.price)) || Number(formData.price) < 0) {
+        newErrors.price = "Price must be a valid number"
+      }
     }
 
     setErrors(newErrors)
@@ -64,7 +72,9 @@ export default function CreateEventPage() {
           date: "",
           time: "",
           location: "",
+          country: "Nigeria",
           price: "",
+          isFree: false,
           category: "music",
           image: null,
         })
@@ -86,6 +96,21 @@ export default function CreateEventPage() {
     }
   }
 
+  const handleFreeEventChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isFree = e.target.checked
+    setFormData((prev) => ({
+      ...prev,
+      isFree,
+      price: isFree ? "0" : prev.price,
+    }))
+    if (isFree && errors.price) {
+      setErrors((prev) => ({
+        ...prev,
+        price: "",
+      }))
+    }
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -96,9 +121,10 @@ export default function CreateEventPage() {
     }
   }
 
-  const getMapUrl = (location: string) => {
+  const getMapIframeUrl = (location: string, country: string) => {
     if (!location) return ""
-    return `https://www.google.com/maps/embed/v1/place?key=MOCK_KEY&q=${encodeURIComponent(location)}`
+    const query = encodeURIComponent(`${location}, ${country}`)
+    return `https://www.google.com/maps?q=${query}&output=embed`
   }
 
   if (!user) return null
@@ -128,7 +154,7 @@ export default function CreateEventPage() {
 
             {submitted && (
               <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6">
-                ✓ Event created successfully! Redirecting...
+                Event created successfully! Redirecting...
               </div>
             )}
 
@@ -195,6 +221,20 @@ export default function CreateEventPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">Country *</label>
+                <select
+                  name="country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="Nigeria">Nigeria</option>
+                  <option value="Ghana">Ghana</option>
+                  <option value="Kenya">Kenya</option>
+                </select>
+              </div>
+
               {/* Location */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">Location *</label>
@@ -214,59 +254,70 @@ export default function CreateEventPage() {
                 {errors.location && <p className="text-destructive text-sm mt-1">{errors.location}</p>}
 
                 {formData.location.length > 3 && (
-                  <div className="mt-4 rounded-lg overflow-hidden border border-border h-48 bg-muted flex items-center justify-center relative">
+                  <div className="mt-4 rounded-lg overflow-hidden border border-border h-64 bg-muted">
                     <iframe
-  src={`https://www.google.com/maps?q=${encodeURIComponent(
-    formData.location
-  )}&output=embed`}
-  className="absolute inset-0 w-full h-full opacity-20 grayscale pointer-events-none"
-  loading="lazy"
-      referrerPolicy="no-referrer-when-downgrade"
-/>
-
-                    <div className="z-10 text-center p-4">
-                      <MapPin className="mx-auto mb-2 text-primary" size={24} />
-                      <p className="text-xs font-medium text-foreground">Map preview for: {formData.location}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Google Maps integration ready for API key
-                      </p>
-                    </div>
+                      src={getMapIframeUrl(formData.location, formData.country)}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Event location map"
+                    />
                   </div>
                 )}
               </div>
 
-              {/* Price and Category */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">Price (NGN) *</label>
+              <div>
+                <div className="flex items-center gap-2 mb-3">
                   <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className={`w-full px-4 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
-                      errors.price ? "border-destructive" : "border-border"
-                    }`}
+                    type="checkbox"
+                    id="isFree"
+                    checked={formData.isFree}
+                    onChange={handleFreeEventChange}
+                    className="w-4 h-4 accent-primary cursor-pointer"
                   />
-                  {errors.price && <p className="text-destructive text-sm mt-1">{errors.price}</p>}
+                  <label htmlFor="isFree" className="text-sm font-semibold text-foreground cursor-pointer">
+                    This is a free event
+                  </label>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">Category</label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="music">Music</option>
-                    <option value="sports">Sports</option>
-                    <option value="tech">Tech</option>
-                    <option value="art">Art</option>
-                    <option value="food">Food</option>
-                  </select>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Price ({currency}) {!formData.isFree && "*"}
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      placeholder={formData.isFree ? "Free" : "0.00"}
+                      step="0.01"
+                      min="0"
+                      disabled={formData.isFree}
+                      className={`w-full px-4 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed ${
+                        errors.price ? "border-destructive" : "border-border"
+                      }`}
+                    />
+                    {errors.price && <p className="text-destructive text-sm mt-1">{errors.price}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-2">Category</label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="music">Music</option>
+                      <option value="sports">Sports</option>
+                      <option value="tech">Tech</option>
+                      <option value="art">Art</option>
+                      <option value="food">Food</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
