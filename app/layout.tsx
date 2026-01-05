@@ -1,16 +1,16 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { GeistSans, GeistMono } from "geist/font";
+import { Inter } from 'next/font/google'
 
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: "EventsKona - Discover & Create Events",
   description: "Discover, create, and manage amazing events with EventsKona",
+  generator: "Events Kona",
 };
 
 export default function RootLayout({
