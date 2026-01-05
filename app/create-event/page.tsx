@@ -237,7 +237,7 @@ export default function CreateEventPage() {
               {/* Price and Category */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">Price (USD) *</label>
+                  <label className="block text-sm font-semibold text-foreground mb-2">Price (NGN) *</label>
                   <input
                     type="number"
                     name="price"

@@ -41,7 +41,7 @@ export default function Home() {
             <Link href={user ? "/create-event" : "/signup"}>
               <button className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-3 rounded-lg font-semibold flex items-center gap-2 mx-auto transition-colors">
                 <Plus size={20} />
-                {user ? "Create Event" : "Sign Up"}
+                {user ? "Create Event" : "Create Event"}
               </button>
             </Link>
           </div>
