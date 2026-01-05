@@ -146,11 +146,7 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <>
-                <Link href="/profile" onClick={() => setIsOpen(false)}>
-                  <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
-                    My Profile
-                  </div>
-                </Link>
+                
                 <Link href="/my-events" onClick={() => setIsOpen(false)}>
                   <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
                     My Events
@@ -163,7 +159,7 @@ export default function Navbar() {
                 </Link>
                 <Link href="/settings" onClick={() => setIsOpen(false)}>
                   <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
-                    Settings
+                   General Settings
                   </div>
                 </Link>
                 <button
