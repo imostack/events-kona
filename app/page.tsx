@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
+import EventCard from "@/components/event-card"
 import { Search, Plus } from "lucide-react"
 import { mockEvents } from "@/lib/mock-data"
 

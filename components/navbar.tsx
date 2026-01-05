@@ -39,20 +39,22 @@ export default function Navbar() {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-8">
-            <Link href="/" className="font-semibold hover:text-primary">
+            <Link href="/" className="text-foreground hover:text-primary transition-colors font-semibold">
               Home
             </Link>
-            <Link href="/my-events" className="font-semibold hover:text-primary">
+            <Link href="/my-events" className="text-foreground hover:text-primary transition-colors font-semibold">
               My Events
             </Link>
-            <Link href="/create-event" className="font-semibold hover:text-primary">
+            <Link href="/create-event" className="text-foreground hover:text-primary transition-colors font-semibold">
               Create Event
             </Link>
-
-            {!isAuthenticated ? (
-              <Link href="/login">
-                <button className="bg-primary text-primary-foreground px-6 py-2 rounded-lg font-semibold hover:bg-primary/90">
-                  Sign In
+            <div className="flex items-center gap-3">
+              <Link href="/login" className="text-foreground hover:text-primary transition-colors font-semibold">
+                Sign In
+              </Link>
+              <Link href="/signup">
+                <button className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors font-semibold">
+                  Get Started
                 </button>
               </Link>
             ) : (
