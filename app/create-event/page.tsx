@@ -215,7 +215,14 @@ export default function CreateEventPage() {
 
                 {formData.location.length > 3 && (
                   <div className="mt-4 rounded-lg overflow-hidden border border-border h-48 bg-muted flex items-center justify-center relative">
-                    <div className="absolute inset-0 opacity-20 grayscale bg-[url('https://www.google.com/maps/vt/pb=!1m4!1m3!1i12!2i2048!3i1280!2m3!1e0!2sm!3i420120488!3m8!2sen!3sUS!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1e0!23i4111425')] bg-cover" />
+                    <iframe
+  src={`https://www.google.com/maps?q=${encodeURIComponent(
+    formData.location
+  )}&output=embed`}
+  className="absolute inset-0 w-full h-full opacity-20 grayscale pointer-events-none"
+  loading="lazy"
+/>
+
                     <div className="z-10 text-center p-4">
                       <MapPin className="mx-auto mb-2 text-primary" size={24} />
                       <p className="text-xs font-medium text-foreground">Map preview for: {formData.location}</p>
