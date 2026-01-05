@@ -1,12 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { Upload, ArrowLeft } from "lucide-react"
+import { Upload, ArrowLeft, MapPin } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function CreateEventPage() {
+  const { user } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!user) {
+      router.push("/signup")
+    }
+  }, [user, router])
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -40,6 +53,7 @@ export default function CreateEventPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
     if (validateForm()) {
       setSubmitted(true)
       setTimeout(() => {
@@ -58,18 +72,36 @@ export default function CreateEventPage() {
     }
   }
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }))
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }))
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) setFormData((prev) => ({ ...prev, image: file }))
+    if (file) {
+      setFormData((prev) => ({
+        ...prev,
+        image: file,
+      }))
+    }
   }
+
+  const getMapUrl = (location: string) => {
+    if (!location) return ""
+    return `https://www.google.com/maps/embed/v1/place?key=MOCK_KEY&q=${encodeURIComponent(location)}`
+  }
+
+  if (!user) return null
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -78,10 +110,11 @@ export default function CreateEventPage() {
       <main className="flex-1">
         {/* Back Button */}
         <div className="bg-card border-b border-border px-4 py-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-2xl mx-auto">
             <Link href="/">
               <button className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
-                <ArrowLeft size={20} /> Back to Home
+                <ArrowLeft size={20} />
+                Back to Home
               </button>
             </Link>
           </div>
@@ -89,14 +122,12 @@ export default function CreateEventPage() {
 
         {/* Form Section */}
         <section className="py-12 px-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-2xl mx-auto">
             <h1 className="text-4xl font-bold mb-2 text-foreground">Create Your Event</h1>
-            <p className="text-muted-foreground mb-8">
-              Fill in the details below to create and share your event
-            </p>
+            <p className="text-muted-foreground mb-8">Fill in the details below to create and share your event</p>
 
             {submitted && (
-              <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6 text-center">
+              <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6">
                 ✓ Event created successfully! Redirecting...
               </div>
             )}
@@ -104,9 +135,7 @@ export default function CreateEventPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Event Title */}
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Event Title *
-                </label>
+                <label className="block text-sm font-semibold text-foreground mb-2">Event Title *</label>
                 <input
                   type="text"
                   name="title"
@@ -122,9 +151,7 @@ export default function CreateEventPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Description *
-                </label>
+                <label className="block text-sm font-semibold text-foreground mb-2">Description *</label>
                 <textarea
                   name="description"
                   value={formData.description}
@@ -135,9 +162,7 @@ export default function CreateEventPage() {
                     errors.description ? "border-destructive" : "border-border"
                   }`}
                 />
-                {errors.description && (
-                  <p className="text-destructive text-sm mt-1">{errors.description}</p>
-                )}
+                {errors.description && <p className="text-destructive text-sm mt-1">{errors.description}</p>}
               </div>
 
               {/* Date and Time */}
@@ -173,27 +198,39 @@ export default function CreateEventPage() {
               {/* Location */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">Location *</label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder="Enter event location"
-                  className={`w-full px-4 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
-                    errors.location ? "border-destructive" : "border-border"
-                  }`}
-                />
-                {errors.location && (
-                  <p className="text-destructive text-sm mt-1">{errors.location}</p>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    placeholder="Enter event venue or address"
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
+                      errors.location ? "border-destructive" : "border-border"
+                    }`}
+                  />
+                </div>
+                {errors.location && <p className="text-destructive text-sm mt-1">{errors.location}</p>}
+
+                {formData.location.length > 3 && (
+                  <div className="mt-4 rounded-lg overflow-hidden border border-border h-48 bg-muted flex items-center justify-center relative">
+                    <div className="absolute inset-0 opacity-20 grayscale bg-[url('https://www.google.com/maps/vt/pb=!1m4!1m3!1i12!2i2048!3i1280!2m3!1e0!2sm!3i420120488!3m8!2sen!3sUS!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1e0!23i4111425')] bg-cover" />
+                    <div className="z-10 text-center p-4">
+                      <MapPin className="mx-auto mb-2 text-primary" size={24} />
+                      <p className="text-xs font-medium text-foreground">Map preview for: {formData.location}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Google Maps integration ready for API key
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
 
               {/* Price and Category */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-foreground mb-2">
-                    Price (NGN) *
-                  </label>
+                  <label className="block text-sm font-semibold text-foreground mb-2">Price (USD) *</label>
                   <input
                     type="number"
                     name="price"
@@ -206,9 +243,7 @@ export default function CreateEventPage() {
                       errors.price ? "border-destructive" : "border-border"
                     }`}
                   />
-                  {errors.price && (
-                    <p className="text-destructive text-sm mt-1">{errors.price}</p>
-                  )}
+                  {errors.price && <p className="text-destructive text-sm mt-1">{errors.price}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-2">Category</label>
@@ -248,8 +283,8 @@ export default function CreateEventPage() {
                 </div>
               </div>
 
-              {/* Submit Buttons */}
-              <div className="flex flex-col md:flex-row gap-4 pt-6">
+              {/* Submit Button */}
+              <div className="flex gap-4 pt-6">
                 <button
                   type="submit"
                   className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
@@ -257,7 +292,10 @@ export default function CreateEventPage() {
                   Create Event
                 </button>
                 <Link href="/">
-                  <button className="flex-1 border border-border text-foreground py-3 rounded-lg font-semibold hover:bg-muted transition-colors">
+                  <button
+                    type="button"
+                    className="flex-1 border border-border text-foreground py-3 rounded-lg font-semibold hover:bg-muted transition-colors"
+                  >
                     Cancel
                   </button>
                 </Link>

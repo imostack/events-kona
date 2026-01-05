@@ -1,7 +1,12 @@
+"use client"
+
 import Link from "next/link"
 import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function Footer() {
+  const { user } = useAuth()
+
   return (
     <footer className="bg-card border-t border-border mt-16">
       <div className="max-w-6xl mx-auto px-4 py-12">
@@ -24,18 +29,27 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/my-events" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link
+                  href={user ? "/my-events" : "/signup"}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
                   My Events
                 </Link>
               </li>
               <li>
-                <Link href="/create-event" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link
+                  href={user ? "/create-event" : "/signup"}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
                   Create Event
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="text-muted-foreground hover:text-primary transition-colors">
-                  Sign In
+                <Link
+                  href={user ? "#" : "/login"}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {user ? "Sign Out" : "Sign In"}
                 </Link>
               </li>
             </ul>
@@ -90,20 +104,7 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="border-t border-border pt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-         <p className="text-muted-foreground text-sm">
-    © 2025 EventsKona. All rights reserved. <br className="md:hidden" />
-    <span className="block md:inline">
-      Powered by{" "}
-      <Link
-        href="https://appguts.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary font-medium hover:underline"
-      >
-        App Guts
-      </Link>
-    </span>
-  </p>
+          <p className="text-muted-foreground text-sm">© 2025 EventsKona. All rights reserved.</p>
           <div className="flex gap-6 text-sm">
             <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy

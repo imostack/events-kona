@@ -7,10 +7,12 @@ import Footer from "@/components/footer"
 import EventCard from "@/components/event-card"
 import { Search, Plus } from "lucide-react"
 import { mockEvents } from "@/lib/mock-data"
+import { useAuth } from "@/lib/auth-context"
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState("all")
+  const { user } = useAuth()
 
   const filteredEvents = mockEvents.filter((event) => {
     const matchesSearch =
@@ -36,10 +38,10 @@ export default function Home() {
             <p className="text-xl md:text-2xl mb-8 opacity-90 text-balance">
               Find, create, and manage events that matter to you
             </p>
-            <Link href="/create-event">
+            <Link href={user ? "/create-event" : "/signup"}>
               <button className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-3 rounded-lg font-semibold flex items-center gap-2 mx-auto transition-colors">
                 <Plus size={20} />
-                Create Event
+                {user ? "Create Event" : "Sign Up"}
               </button>
             </Link>
           </div>
