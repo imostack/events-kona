@@ -8,8 +8,6 @@
 
 /* font variables */
 :root {
-  --geist-sans: "Geist", "Geist Fallback";
-  --geist-mono: "Geist Mono", "Geist Mono Fallback";
    --font-sans: var(--font-jakarta);
 
   /* EventsKona Color System - Modern & Energetic */
@@ -84,8 +82,6 @@
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --font-family: var(--font-sans);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
