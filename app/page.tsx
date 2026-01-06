@@ -69,6 +69,7 @@ export default function Home() {
                 <option value="all">All Categories</option>
                 <option value="music">Music</option>
                 <option value="sports">Sports</option>
+                <option value="music">Business</option>
                 <option value="tech">Tech</option>
                 <option value="art">Art</option>
                 <option value="food">Food</option>
