@@ -46,7 +46,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href={user ? "#" : "/login"}
+                  href={user ? "/login" : "/login"}
                   className="text-muted-foreground hover:text-primary transition-colors"
                 >
                   {user ? "Sign Out" : "Sign In"}
@@ -60,22 +60,22 @@ export default function Footer() {
             <h4 className="font-semibold text-foreground mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/help-center" className="text-muted-foreground hover:text-primary transition-colors">
                   Help Center
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/contact-us" className="text-muted-foreground hover:text-primary transition-colors">
                   Contact Us
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="faq" className="text-muted-foreground hover:text-primary transition-colors">
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="blog" className="text-muted-foreground hover:text-primary transition-colors">
                   Blog
                 </Link>
               </li>
@@ -106,13 +106,13 @@ export default function Footer() {
         <div className="border-t border-border pt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <p className="text-muted-foreground text-sm">© 2026 EventsKona. All rights reserved.</p>
           <div className="flex gap-6 text-sm">
-            <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+            <Link href="privacy-policy" className="text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy
             </Link>
-            <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+            <Link href="terms-of-service" className="text-muted-foreground hover:text-primary transition-colors">
               Terms of Service
             </Link>
-            <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+            <Link href="cookie-policy" className="text-muted-foreground hover:text-primary transition-colors">
               Cookie Policy
             </Link>
           </div>

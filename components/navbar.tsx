@@ -67,12 +67,7 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-foreground">{user?.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                     </div>
-                    <Link href="/profile" onClick={() => setShowUserMenu(false)}>
-                      <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
-                        <User size={18} className="text-muted-foreground" />
-                        <span className="text-sm font-medium">My Profile</span>
-                      </div>
-                    </Link>
+                    
                     <Link href="/my-events" onClick={() => setShowUserMenu(false)}>
                       <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
                         <Calendar size={18} className="text-muted-foreground" />
@@ -88,7 +83,7 @@ export default function Navbar() {
                     <Link href="/settings" onClick={() => setShowUserMenu(false)}>
                       <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
                         <Settings size={18} className="text-muted-foreground" />
-                        <span className="text-sm font-medium">Settings</span>
+                        <span className="text-sm font-medium">Account Settings</span>
                       </div>
                     </Link>
                     <div className="border-t border-border mt-2 pt-2">
