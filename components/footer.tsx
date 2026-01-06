@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react"
+import { Facebook, Instagram, Linkedin } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function Footer() {
   const { user } = useAuth()
+  const currentYear = new Date().getFullYear() // Auto-updates every year!
 
   return (
     <footer className="bg-card border-t border-border mt-16">
@@ -60,23 +61,23 @@ export default function Footer() {
             <h4 className="font-semibold text-foreground mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/help-center" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/help" className="text-muted-foreground hover:text-primary transition-colors">
                   Help Center
                 </Link>
               </li>
               <li>
-                <Link href="/contact-us" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
                   Contact Us
                 </Link>
               </li>
               <li>
-                <Link href="faq" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/faq" className="text-muted-foreground hover:text-primary transition-colors">
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link href="blog" className="text-muted-foreground hover:text-primary transition-colors">
-                  Blog
+                <Link href="/guides" className="text-muted-foreground hover:text-primary transition-colors">
+                  Guides
                 </Link>
               </li>
             </ul>
@@ -90,9 +91,11 @@ export default function Footer() {
                 <Facebook size={20} />
               </Link>
               <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Twitter size={20} />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <Link href="https://instagram.com/eventskona" className="text-muted-foreground hover:text-primary transition-colors">
                 <Instagram size={20} />
               </Link>
               <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
@@ -104,17 +107,28 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="border-t border-border pt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <p className="text-muted-foreground text-sm">© 2026 EventsKona. All rights reserved.</p>
-          <div className="flex gap-6 text-sm">
-            <Link href="privacy-policy" className="text-muted-foreground hover:text-primary transition-colors">
+          <p className="text-muted-foreground text-sm">
+            © {currentYear} EventsKona. All rights reserved.
+          </p>
+          <div className="flex flex-wrap gap-6 text-sm items-center">
+            <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy
             </Link>
-            <Link href="terms-of-service" className="text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
               Terms of Service
             </Link>
-            <Link href="cookie-policy" className="text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/cookie-policy" className="text-muted-foreground hover:text-primary transition-colors">
               Cookie Policy
             </Link>
+            <span className="text-muted-foreground">|</span>
+            <a 
+              href="https://appguts.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              Powered by <span className="font-semibold">App Guts Limited</span>
+            </a>
           </div>
         </div>
       </div>
