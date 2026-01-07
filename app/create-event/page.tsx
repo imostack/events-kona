@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { Upload, ArrowLeft, ArrowRight, MapPin, Video, Plus, Trash2, Check, Megaphone, Zap, TrendingUp, Star } from "lucide-react"
+import { Upload, ArrowLeft, ArrowRight, MapPin, Video, Plus, Trash2, Check, Megaphone, Zap, TrendingUp, Star, Repeat, Calendar, Info } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -28,6 +28,15 @@ interface Promotion {
   duration: string
 }
 
+interface Recurrence {
+  frequency: "daily" | "weekly" | "monthly"
+  interval: number
+  daysOfWeek: number[]
+  endType: "date" | "occurrences"
+  endDate: string
+  occurrences: number
+}
+
 export default function CreateEventPage() {
   const { user } = useAuth()
   const router = useRouter()
@@ -37,6 +46,15 @@ export default function CreateEventPage() {
     eventFormat: "", venueName: "", address: "", city: "", country: "Nigeria",
     onlineUrl: "", platform: "",
     startDate: "", startTime: "", endDate: "", endTime: "",
+    isRecurring: false,
+    recurrence: {
+      frequency: "weekly" as "daily" | "weekly" | "monthly",
+      interval: 1,
+      daysOfWeek: [] as number[],
+      endType: "occurrences" as "date" | "occurrences",
+      endDate: "",
+      occurrences: 10
+    } as Recurrence,
     description: "", image: null as File | null, imagePreview: "",
     isFree: false, currency: "NGN",
     tickets: [{ id: "1", name: "General Admission", type: "regular" as const, price: "", quantity: "", description: "" }] as Ticket[],
@@ -45,6 +63,16 @@ export default function CreateEventPage() {
     selectedPromotion: null as string | null
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const daysOfWeek = [
+    { value: 0, label: "Sun", fullLabel: "Sunday" },
+    { value: 1, label: "Mon", fullLabel: "Monday" },
+    { value: 2, label: "Tue", fullLabel: "Tuesday" },
+    { value: 3, label: "Wed", fullLabel: "Wednesday" },
+    { value: 4, label: "Thu", fullLabel: "Thursday" },
+    { value: 5, label: "Fri", fullLabel: "Friday" },
+    { value: 6, label: "Sat", fullLabel: "Saturday" }
+  ]
 
   const promotions: Promotion[] = [
     {
@@ -104,7 +132,22 @@ export default function CreateEventPage() {
       if ((formData.eventFormat === "venue" || formData.eventFormat === "hybrid") && !formData.address) e.address = "Address required"
       if ((formData.eventFormat === "online" || formData.eventFormat === "hybrid") && !formData.onlineUrl) e.onlineUrl = "URL required"
     }
-    if (s === 3 && (!formData.startDate || !formData.startTime || !formData.endDate || !formData.endTime)) e.date = "All date/time fields required"
+    if (s === 3) {
+      if (!formData.startDate || !formData.startTime || !formData.endDate || !formData.endTime) {
+        e.date = "All date/time fields required"
+      }
+      if (formData.isRecurring) {
+        if (formData.recurrence.frequency === "weekly" && formData.recurrence.daysOfWeek.length === 0) {
+          e.recurrence = "Select at least one day of the week"
+        }
+        if (formData.recurrence.endType === "date" && !formData.recurrence.endDate) {
+          e.recurrenceEnd = "End date is required"
+        }
+        if (formData.recurrence.endType === "occurrences" && formData.recurrence.occurrences < 1) {
+          e.recurrenceEnd = "At least 1 occurrence is required"
+        }
+      }
+    }
     if (s === 4 && formData.description.length < 50) e.description = "Min 50 characters"
     if (s === 5 && !formData.isFree && formData.tickets.some(t => !t.name || !t.price || !t.quantity)) e.tickets = "Complete all ticket fields"
     setErrors(e)
@@ -113,7 +156,6 @@ export default function CreateEventPage() {
 
   const next = () => { 
     if (validate(step)) {
-      // Skip promotion step if promotion is not enabled
       if (step === 6 && !formData.promoteEvent) {
         handlePublish()
         return
@@ -125,7 +167,40 @@ export default function CreateEventPage() {
   const prev = () => { if (step > 1) setStep((s) => (s - 1) as Step) }
   
   const handlePublish = () => {
-    console.log("Event created:", formData)
+    // Build the API payload
+    const payload: any = {
+      title: formData.title,
+      category: formData.category,
+      eventFormat: formData.eventFormat,
+      venueName: formData.venueName,
+      address: formData.address,
+      city: formData.city,
+      country: formData.country,
+      onlineUrl: formData.onlineUrl,
+      platform: formData.platform,
+      startDate: formData.startDate,
+      startTime: formData.startTime,
+      endDate: formData.endDate,
+      endTime: formData.endTime,
+      description: formData.description,
+      isFree: formData.isFree,
+      currency: formData.currency,
+      tickets: formData.tickets,
+      isRecurring: formData.isRecurring,
+    }
+
+    // Add recurrence data if recurring
+    if (formData.isRecurring) {
+      payload.recurrence = {
+        frequency: formData.recurrence.frequency,
+        interval: formData.recurrence.interval,
+        daysOfWeek: formData.recurrence.frequency === "weekly" ? formData.recurrence.daysOfWeek : undefined,
+        endDate: formData.recurrence.endType === "date" ? formData.recurrence.endDate : undefined,
+        occurrences: formData.recurrence.endType === "occurrences" ? formData.recurrence.occurrences : undefined
+      }
+    }
+
+    console.log("Event created:", payload)
     alert("Event created successfully!")
     router.push("/")
   }
@@ -138,8 +213,6 @@ export default function CreateEventPage() {
     const promo = promotions.find(p => p.id === formData.selectedPromotion)
     console.log("Processing payment for:", promo)
     alert(`Redirecting to checkout for ${promo?.name} - ${formData.currency} ${promo?.price.toLocaleString()}`)
-    // Here you would integrate with payment gateway
-    // After successful payment, publish the event
     setTimeout(() => {
       handlePublish()
     }, 1000)
@@ -148,6 +221,26 @@ export default function CreateEventPage() {
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target
     setFormData(p => ({ ...p, [name]: type === "checkbox" ? checked : value }))
+  }
+
+  const handleRecurrenceChange = (field: keyof Recurrence, value: any) => {
+    setFormData(p => ({
+      ...p,
+      recurrence: { ...p.recurrence, [field]: value }
+    }))
+  }
+
+  const toggleDayOfWeek = (day: number) => {
+    setFormData(p => {
+      const currentDays = p.recurrence.daysOfWeek
+      const newDays = currentDays.includes(day)
+        ? currentDays.filter(d => d !== day)
+        : [...currentDays, day].sort((a, b) => a - b)
+      return {
+        ...p,
+        recurrence: { ...p.recurrence, daysOfWeek: newDays }
+      }
+    })
   }
 
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,7 +267,6 @@ export default function CreateEventPage() {
       ...p, 
       tickets: p.tickets.map(t => {
         if (t.id === id) {
-          // Auto-populate name based on type
           if (field === "type") {
             const names: Record<string, string> = {
               regular: "General Admission",
@@ -188,6 +280,37 @@ export default function CreateEventPage() {
         return t
       })
     }))
+  }
+
+  // Generate recurrence summary text
+  const getRecurrenceSummary = (): string => {
+    if (!formData.isRecurring) return ""
+    
+    const { frequency, interval, daysOfWeek: days, endType, endDate, occurrences } = formData.recurrence
+    
+    let summary = ""
+    
+    // Frequency part
+    if (interval === 1) {
+      summary = frequency === "daily" ? "Every day" : frequency === "weekly" ? "Every week" : "Every month"
+    } else {
+      summary = `Every ${interval} ${frequency === "daily" ? "days" : frequency === "weekly" ? "weeks" : "months"}`
+    }
+    
+    // Days of week for weekly
+    if (frequency === "weekly" && days.length > 0) {
+      const dayNames = days.map(d => daysOfWeek.find(dw => dw.value === d)?.label).join(", ")
+      summary += ` on ${dayNames}`
+    }
+    
+    // End condition
+    if (endType === "date" && endDate) {
+      summary += ` until ${new Date(endDate).toLocaleDateString()}`
+    } else if (endType === "occurrences") {
+      summary += `, ${occurrences} times`
+    }
+    
+    return summary
   }
 
   if (!user) return null
@@ -262,12 +385,191 @@ export default function CreateEventPage() {
             {step === 3 && (
               <div className="space-y-6">
                 <div><h2 className="text-2xl font-bold mb-2">Date & Time</h2><p className="text-muted-foreground">When does your event start and end?</p></div>
+                
+                {/* Single Event Date/Time */}
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block text-sm font-semibold mb-2">Start Date *</label><input type="date" name="startDate" value={formData.startDate} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg" /></div>
                   <div><label className="block text-sm font-semibold mb-2">Start Time *</label><input type="time" name="startTime" value={formData.startTime} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg" /></div>
                   <div><label className="block text-sm font-semibold mb-2">End Date *</label><input type="date" name="endDate" value={formData.endDate} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg" /></div>
                   <div><label className="block text-sm font-semibold mb-2">End Time *</label><input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg" /></div>
                 </div>
+
+                {errors.date && <p className="text-red-500 text-sm">{errors.date}</p>}
+
+                {/* Recurring Event Toggle */}
+                <div className="border-t pt-6 mt-6">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Repeat size={20} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-bold text-foreground">Recurring Event</h3>
+                            <p className="text-sm text-muted-foreground">This event repeats on a schedule</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              name="isRecurring" 
+                              checked={formData.isRecurring} 
+                              onChange={handleChange}
+                              className="sr-only peer" 
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recurring Event Options */}
+                {formData.isRecurring && (
+                  <div className="space-y-6 border border-blue-200 rounded-xl p-6 bg-blue-50/30">
+                    <div className="flex items-center gap-2 text-blue-700 mb-2">
+                      <Calendar size={18} />
+                      <span className="font-semibold">Recurrence Settings</span>
+                    </div>
+
+                    {/* Frequency */}
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Repeat Frequency *</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { value: "daily", label: "Daily" },
+                          { value: "weekly", label: "Weekly" },
+                          { value: "monthly", label: "Monthly" }
+                        ].map(freq => (
+                          <button
+                            key={freq.value}
+                            type="button"
+                            onClick={() => handleRecurrenceChange("frequency", freq.value)}
+                            className={`py-3 px-4 border-2 rounded-lg font-medium transition-all ${
+                              formData.recurrence.frequency === freq.value
+                                ? "border-blue-600 bg-blue-600 text-white"
+                                : "border-gray-200 bg-white hover:border-blue-300"
+                            }`}
+                          >
+                            {freq.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Interval */}
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">
+                        Repeat Every
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={formData.recurrence.interval}
+                          onChange={(e) => handleRecurrenceChange("interval", parseInt(e.target.value) || 1)}
+                          className="w-20 px-4 py-3 border rounded-lg text-center"
+                        />
+                        <span className="text-muted-foreground">
+                          {formData.recurrence.frequency === "daily" && (formData.recurrence.interval === 1 ? "day" : "days")}
+                          {formData.recurrence.frequency === "weekly" && (formData.recurrence.interval === 1 ? "week" : "weeks")}
+                          {formData.recurrence.frequency === "monthly" && (formData.recurrence.interval === 1 ? "month" : "months")}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Days of Week (for weekly) */}
+                    {formData.recurrence.frequency === "weekly" && (
+                      <div>
+                        <label className="block text-sm font-semibold mb-2">Repeat On *</label>
+                        <div className="flex flex-wrap gap-2">
+                          {daysOfWeek.map(day => (
+                            <button
+                              key={day.value}
+                              type="button"
+                              onClick={() => toggleDayOfWeek(day.value)}
+                              className={`w-12 h-12 rounded-full font-medium transition-all ${
+                                formData.recurrence.daysOfWeek.includes(day.value)
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-white border-2 border-gray-200 hover:border-blue-300"
+                              }`}
+                              title={day.fullLabel}
+                            >
+                              {day.label}
+                            </button>
+                          ))}
+                        </div>
+                        {errors.recurrence && <p className="text-red-500 text-sm mt-2">{errors.recurrence}</p>}
+                      </div>
+                    )}
+
+                    {/* End Condition */}
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Ends *</label>
+                      <div className="space-y-3">
+                        {/* After X occurrences */}
+                        <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          formData.recurrence.endType === "occurrences" ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
+                        }`}>
+                          <input
+                            type="radio"
+                            name="endType"
+                            checked={formData.recurrence.endType === "occurrences"}
+                            onChange={() => handleRecurrenceChange("endType", "occurrences")}
+                            className="w-4 h-4 text-blue-600"
+                          />
+                          <span>After</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={formData.recurrence.occurrences}
+                            onChange={(e) => handleRecurrenceChange("occurrences", parseInt(e.target.value) || 1)}
+                            disabled={formData.recurrence.endType !== "occurrences"}
+                            className="w-20 px-3 py-2 border rounded-lg text-center disabled:opacity-50"
+                          />
+                          <span>occurrences</span>
+                        </label>
+
+                        {/* On specific date */}
+                        <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          formData.recurrence.endType === "date" ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
+                        }`}>
+                          <input
+                            type="radio"
+                            name="endType"
+                            checked={formData.recurrence.endType === "date"}
+                            onChange={() => handleRecurrenceChange("endType", "date")}
+                            className="w-4 h-4 text-blue-600"
+                          />
+                          <span>On date</span>
+                          <input
+                            type="date"
+                            value={formData.recurrence.endDate}
+                            onChange={(e) => handleRecurrenceChange("endDate", e.target.value)}
+                            disabled={formData.recurrence.endType !== "date"}
+                            min={formData.startDate}
+                            className="px-3 py-2 border rounded-lg disabled:opacity-50"
+                          />
+                        </label>
+                      </div>
+                      {errors.recurrenceEnd && <p className="text-red-500 text-sm mt-2">{errors.recurrenceEnd}</p>}
+                    </div>
+
+                    {/* Recurrence Summary */}
+                    {getRecurrenceSummary() && (
+                      <div className="bg-white border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                        <Info size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Schedule Summary</p>
+                          <p className="text-sm text-muted-foreground">{getRecurrenceSummary()}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
