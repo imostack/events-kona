@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { Upload, ArrowLeft, ArrowRight, MapPin, Video, Plus, Trash2, Check, Megaphone, Zap, TrendingUp, Star, Repeat, Calendar, Info } from "lucide-react"
+import { Upload, ArrowLeft, ArrowRight, MapPin, Video, Plus, Trash2, Check, Megaphone, Zap, TrendingUp, Star, Repeat, Calendar, Info, Users, Tag, Phone, Mail, X, Save } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -43,6 +43,8 @@ export default function CreateEventPage() {
   const [step, setStep] = useState<Step>(1)
   const [formData, setFormData] = useState({
     title: "", category: "music",
+    ageRestriction: "all-ages" as "all-ages" | "18+" | "21+" | "family-friendly",
+    tags: [] as string[],
     eventFormat: "", venueName: "", address: "", city: "", country: "Nigeria",
     onlineUrl: "", platform: "",
     startDate: "", startTime: "", endDate: "", endTime: "",
@@ -58,11 +60,40 @@ export default function CreateEventPage() {
     description: "", image: null as File | null, imagePreview: "",
     isFree: false, currency: "NGN",
     tickets: [{ id: "1", name: "General Admission", type: "regular" as const, price: "", quantity: "", description: "" }] as Ticket[],
-    capacity: "", isPrivate: false,
+    capacity: "",
+    refundPolicy: "non-refundable" as "refundable" | "non-refundable" | "partial",
+    contactEmail: "", contactPhone: "",
+    isPrivate: false,
     promoteEvent: false,
     selectedPromotion: null as string | null
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [tagInput, setTagInput] = useState("")
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    const draft = localStorage.getItem('eventDraft')
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft)
+        setFormData(parsed)
+      } catch (e) {
+        console.error('Failed to load draft:', e)
+      }
+    }
+  }, [])
+
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('eventDraft', JSON.stringify(formData))
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [formData])
+
+  const clearDraft = () => {
+    localStorage.removeItem('eventDraft')
+  }
 
   const daysOfWeek = [
     { value: 0, label: "Sun", fullLabel: "Sunday" },
@@ -171,6 +202,8 @@ export default function CreateEventPage() {
     const payload: any = {
       title: formData.title,
       category: formData.category,
+      ageRestriction: formData.ageRestriction,
+      tags: formData.tags,
       eventFormat: formData.eventFormat,
       venueName: formData.venueName,
       address: formData.address,
@@ -186,6 +219,10 @@ export default function CreateEventPage() {
       isFree: formData.isFree,
       currency: formData.currency,
       tickets: formData.tickets,
+      capacity: formData.capacity,
+      refundPolicy: formData.refundPolicy,
+      contactEmail: formData.contactEmail,
+      contactPhone: formData.contactPhone,
       isRecurring: formData.isRecurring,
     }
 
@@ -201,6 +238,7 @@ export default function CreateEventPage() {
     }
 
     console.log("Event created:", payload)
+    clearDraft() // Clear draft after successful publish
     alert("Event created successfully!")
     router.push("/")
   }
@@ -263,8 +301,8 @@ export default function CreateEventPage() {
   const removeTicket = (id: string) => setFormData(p => ({ ...p, tickets: p.tickets.filter(t => t.id !== id) }))
   
   const updateTicket = (id: string, field: keyof Ticket, value: string) => {
-    setFormData(p => ({ 
-      ...p, 
+    setFormData(p => ({
+      ...p,
       tickets: p.tickets.map(t => {
         if (t.id === id) {
           if (field === "type") {
@@ -280,6 +318,25 @@ export default function CreateEventPage() {
         return t
       })
     }))
+  }
+
+  const addTag = () => {
+    const tag = tagInput.trim().toLowerCase()
+    if (tag && !formData.tags.includes(tag) && formData.tags.length < 5) {
+      setFormData(p => ({ ...p, tags: [...p.tags, tag] }))
+      setTagInput("")
+    }
+  }
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData(p => ({ ...p, tags: p.tags.filter(t => t !== tagToRemove) }))
+  }
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addTag()
+    }
   }
 
   // Generate recurrence summary text
@@ -321,9 +378,22 @@ export default function CreateEventPage() {
       <main className="flex-1">
         <div className="bg-card border-b px-4 py-4">
           <div className="max-w-4xl mx-auto">
-            <Link href="/"><button className="flex items-center gap-2 text-primary hover:text-primary/80 mb-4"><ArrowLeft size={20} />Back</button></Link>
+            <div className="flex items-center justify-between mb-4">
+              <Link href="/"><button className="flex items-center gap-2 text-primary hover:text-primary/80"><ArrowLeft size={20} />Back</button></Link>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('eventDraft', JSON.stringify(formData))
+                  alert('Draft saved successfully!')
+                }}
+                className="flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors"
+              >
+                <Save size={18} />
+                Save Draft
+              </button>
+            </div>
             <h1 className="text-3xl font-bold">Create Event</h1>
-            <p className="text-muted-foreground">Step {step} of {formData.promoteEvent ? "7" : "6"}</p>
+            <p className="text-muted-foreground">Step {step} of {formData.promoteEvent ? "7" : "6"} • Auto-saving...</p>
           </div>
         </div>
         <div className="h-2 bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${(step / (formData.promoteEvent ? 7 : 6)) * 100}%` }} /></div>
@@ -344,6 +414,56 @@ export default function CreateEventPage() {
                     <option value="music">Music</option><option value="business">Business</option><option value="food">Food & Drink</option>
                     <option value="arts">Arts</option><option value="sports">Sports</option><option value="tech">Technology</option><option value="education">Education</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Age Restriction</label>
+                  <select name="ageRestriction" value={formData.ageRestriction} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-background">
+                    <option value="all-ages">All Ages</option>
+                    <option value="family-friendly">Family Friendly</option>
+                    <option value="18+">18+ Only</option>
+                    <option value="21+">21+ Only</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">Specify any age requirements for attendees</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Event Tags (Optional)</label>
+                  <div className="flex gap-2 mb-2">
+                    <div className="flex-1 relative">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={handleTagInputKeyDown}
+                        placeholder="e.g., networking, outdoor, live-band"
+                        className="w-full pl-10 pr-4 py-3 border rounded-lg bg-background"
+                        disabled={formData.tags.length >= 5}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addTag}
+                      disabled={!tagInput.trim() || formData.tags.length >= 5}
+                      className="px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {formData.tags.map((tag) => (
+                        <span key={tag} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                          {tag}
+                          <button type="button" onClick={() => removeTag(tag)} className="hover:bg-primary/20 rounded-full p-0.5">
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">Add up to 5 tags to help people discover your event. Press Enter or click Add.</p>
                 </div>
               </div>
             )}
@@ -593,6 +713,25 @@ export default function CreateEventPage() {
             {step === 5 && (
               <div className="space-y-6">
                 <div><h2 className="text-2xl font-bold mb-2">Tickets & Pricing</h2><p className="text-muted-foreground">Set up your ticket types and pricing</p></div>
+
+                {/* Event Capacity */}
+                <div>
+                  <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                    <Users size={18} />
+                    Event Capacity (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    name="capacity"
+                    value={formData.capacity}
+                    onChange={handleChange}
+                    placeholder="e.g., 500"
+                    min="1"
+                    className="w-full px-4 py-3 border rounded-lg bg-background"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Maximum number of attendees for this event</p>
+                </div>
+
                 <label className="flex items-center gap-3 p-4 bg-muted rounded-lg cursor-pointer">
                   <input type="checkbox" name="isFree" checked={formData.isFree} onChange={handleChange} className="w-5 h-5" />
                   <span className="font-semibold">This is a free event</span>
@@ -601,8 +740,19 @@ export default function CreateEventPage() {
                   <>
                     <select name="currency" value={formData.currency} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg">
                       <option value="NGN">Nigerian Naira (₦)</option><option value="GHS">Ghanaian Cedi (₵)</option><option value="KES">Kenyan Shilling (KSh)</option>
-                      <option value="USD">US Dollar ($)</option><option value="EUR">Euro (€)</option><option value="GBP">British Pound (£)</option>
                     </select>
+
+                    {/* Refund Policy */}
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Refund Policy</label>
+                      <select name="refundPolicy" value={formData.refundPolicy} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-background">
+                        <option value="non-refundable">Non-refundable</option>
+                        <option value="refundable">Refundable (until 7 days before event)</option>
+                        <option value="partial">Partial refund (50% until 3 days before)</option>
+                      </select>
+                      <p className="text-xs text-muted-foreground mt-1">Let attendees know your cancellation policy</p>
+                    </div>
+
                     <div className="space-y-4">
                       {formData.tickets.map((t, i) => (
                         <div key={t.id} className="border border-border rounded-lg p-5 space-y-4 bg-card">
@@ -658,6 +808,44 @@ export default function CreateEventPage() {
                     </div>
                   </>
                 )}
+
+                {/* Contact Information */}
+                <div className="border-t pt-6 mt-6">
+                  <h3 className="text-lg font-bold mb-4">Contact Information</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Provide contact details for attendees to reach out with questions</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Mail size={18} />
+                        Contact Email
+                      </label>
+                      <input
+                        type="email"
+                        name="contactEmail"
+                        value={formData.contactEmail}
+                        onChange={handleChange}
+                        placeholder="event@example.com"
+                        className="w-full px-4 py-3 border rounded-lg bg-background"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Phone size={18} />
+                        Contact Phone (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        name="contactPhone"
+                        value={formData.contactPhone}
+                        onChange={handleChange}
+                        placeholder="+234 800 000 0000"
+                        className="w-full px-4 py-3 border rounded-lg bg-background"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">This information will be visible to attendees on the event page</p>
+                </div>
               </div>
             )}
 
