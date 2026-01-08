@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import EventCard from "@/components/event-card"
@@ -70,11 +71,18 @@ export default function Home() {
                 className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
                 style={{
                   opacity: currentImageIndex === index ? 1 : 0,
-                  backgroundImage: `url(${image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
                 }}
-              />
+              >
+                <Image
+                  src={image}
+                  alt={`Hero background ${index + 1}`}
+                  fill
+                  priority={index === 0}
+                  quality={75}
+                  sizes="100vw"
+                  className="object-cover"
+                />
+              </div>
             ))}
             {/* Dark Overlay for Text Readability */}
             <div className="absolute inset-0 bg-black/60" />
