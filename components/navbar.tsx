@@ -22,10 +22,11 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer">
-              <div className="bg-primary text-primary-foreground p-2 rounded-lg">
-                <Calendar size={24} />
-              </div>
-              <span className="text-2xl font-bold text-foreground">EventsKona</span>
+              <img
+                src="https://alproseltech.com/eventskona-logo.png"
+                alt="EventsKona Logo"
+                className="h-10 w-auto"
+              />
             </div>
           </Link>
 

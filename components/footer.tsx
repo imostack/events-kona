@@ -121,9 +121,18 @@ export default function Footer() {
               Cookie Policy
             </Link>
             <span className="text-muted-foreground">|</span>
-            <a 
-              href="https://appguts.com" 
-              target="_blank" 
+            <a
+              href="https://www.freepik.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              Hero images by Freepik
+            </a>
+            <span className="text-muted-foreground">|</span>
+            <a
+              href="https://appguts.com"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors"
             >

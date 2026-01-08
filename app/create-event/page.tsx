@@ -412,7 +412,7 @@ export default function CreateEventPage() {
                   <label className="block text-sm font-semibold mb-2">Category *</label>
                   <select name="category" value={formData.category} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-background">
                     <option value="music">Music</option><option value="business">Business</option><option value="food">Food & Drink</option>
-                    <option value="arts">Arts</option><option value="sports">Sports</option><option value="tech">Technology</option><option value="education">Education</option>
+                    <option value="arts">Arts</option><option value="sports">Sports</option><option value="tech">Technology</option><option value="education">Education</option><option value="religious">Religious</option>
                   </select>
                 </div>
 

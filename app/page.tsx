@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
@@ -17,13 +17,31 @@ const categories = [
   { id: "arts", name: "Arts", icon: Palette, color: "bg-pink-500" },
   { id: "sports", name: "Sports", icon: Trophy, color: "bg-green-500" },
   { id: "tech", name: "Technology", icon: Cpu, color: "bg-cyan-500" },
-  { id: "education", name: "Education", icon: GraduationCap, color: "bg-amber-500" }
+  { id: "education", name: "Education", icon: GraduationCap, color: "bg-amber-500" },
+  { id: "religious", name: "Religious", icon: Calendar, color: "bg-rose-500" }
+]
+
+// Hero background images 
+const heroImages = [
+  "https://alproseltech.com/abstract-concept.webp", // abstract
+  "https://alproseltech.com/abstract-concept-2.webp", // abstract
+  "https://alproseltech.com/abstract-concept-3.webp", // abstract
 ]
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState("all")
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const { user } = useAuth()
+
+  // Auto-rotate hero background images
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length)
+    }, 8000) // Change image every 8 seconds
+
+    return () => clearInterval(interval)
+  }, [])
 
   const filteredEvents = mockEvents.filter((event) => {
     const matchesSearch =
@@ -42,9 +60,28 @@ export default function Home() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground py-20 px-4">
-          <div className="max-w-6xl mx-auto text-center">
+        {/* Hero Section with Background Carousel */}
+        <section className="relative py-20 px-4 overflow-hidden">
+          {/* Background Images with Fade Transition */}
+          <div className="absolute inset-0">
+            {heroImages.map((image, index) => (
+              <div
+                key={index}
+                className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+                style={{
+                  opacity: currentImageIndex === index ? 1 : 0,
+                  backgroundImage: `url(${image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+            ))}
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/90 to-primary/85" />
+          </div>
+
+          {/* Hero Content */}
+          <div className="relative max-w-6xl mx-auto text-center text-primary-foreground">
             <h1 className="text-5xl md:text-6xl font-bold mb-6 text-balance">Discover Amazing Events</h1>
             <p className="text-xl md:text-2xl mb-8 opacity-90 text-balance">
               Find, create, and manage events that matter to you
@@ -61,6 +98,20 @@ export default function Home() {
                   Browse Events
                 </button>
               </Link>
+            </div>
+
+            {/* Carousel Indicators */}
+            <div className="flex justify-center gap-2 mt-8">
+              {heroImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    currentImageIndex === index ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/70'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
             </div>
           </div>
         </section>
@@ -80,7 +131,7 @@ export default function Home() {
                 <div className="flex items-center justify-center gap-2 text-primary mb-2">
                   <Users size={24} />
                 </div>
-                <div className="text-3xl font-bold text-foreground">50K+</div>
+                <div className="text-3xl font-bold text-foreground">5K+</div>
                 <div className="text-sm text-muted-foreground">Total Attendees</div>
               </div>
               <div>

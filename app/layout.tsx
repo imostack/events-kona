@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google"
 
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context"
+import CookieConsent from "@/components/cookie-consent"
 
 
 const jakarta = Plus_Jakarta_Sans({
@@ -26,7 +27,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${jakarta.variable} font-sans antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <CookieConsent />
+        </AuthProvider>
       </body>
     </html>
   )
