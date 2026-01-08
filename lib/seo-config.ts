@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 export const siteConfig = {
   name: "EventsKona",
   description: "Discover, create, and manage amazing events in Nigeria, Ghana, and across Africa. Your premier event management platform.",
-  url: "https://eventskona.com", // Replace with your actual domain
+  url: "https://eventskona.com", 
   ogImage: "https://alproseltech.com/eventskona-og-image.jpg", // You'll need to create this
   links: {
     twitter: "https://twitter.com/eventskona",
