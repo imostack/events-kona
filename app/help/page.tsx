@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { 
+import PageHeader from "@/components/page-header"
+import {
   Search,
   ChevronRight,
   BookOpen,
@@ -211,33 +212,36 @@ export default function HelpCenterPage() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <Link href="/">
-              <button className="flex items-center gap-2 text-primary-foreground/90 hover:text-primary-foreground transition-colors mb-6 mx-auto">
-                <ArrowLeft size={20} />
-                Back to Home
-              </button>
-            </Link>
-            <h1 className="text-5xl font-bold mb-4">How can we help you?</h1>
-            <p className="text-xl text-primary-foreground/90 mb-8">
-              Search our knowledge base or browse categories below
-            </p>
-            
-            {/* Search Bar */}
-            <div className="relative max-w-2xl mx-auto">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
-              <input
-                type="text"
-                placeholder="Search for help articles, FAQs, or topics..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-xl border-0 bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
-              />
+        {/* Page Header */}
+        <PageHeader
+          title="How can we help you?"
+          description="Search our knowledge base or browse categories below"
+          icon={HelpCircle}
+        />
+
+        {/* Search Section */}
+        <section className="bg-secondary/30 border-b border-border py-8 px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-col gap-4 items-center">
+              <Link href="/">
+                <button className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
+                  <ArrowLeft size={20} />
+                  Back to Home
+                </button>
+              </Link>
+              <div className="relative w-full max-w-2xl">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search for help articles, FAQs, or topics..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-md"
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Quick Links */}
         <section className="py-8 px-4 border-b border-border">

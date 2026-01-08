@@ -1,0 +1,28 @@
+# EventsKona Robots.txt
+# https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private pages
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /settings
+Disallow: /onboarding
+
+# Allow important pages for crawling
+Allow: /events/
+Allow: /help
+Allow: /contact
+Allow: /faq
+Allow: /guides
+Allow: /privacy
+Allow: /terms
+Allow: /cookie-policy
+
+# Crawl delay (be nice to servers)
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://eventskona.com/sitemap.xml

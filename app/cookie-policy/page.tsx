@@ -4,10 +4,10 @@ import { useState } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { 
-  ArrowLeft, 
-  Cookie, 
-  Shield, 
+import PageHeader from "@/components/page-header"
+import {
+  Cookie,
+  Shield,
   Settings,
   Eye,
   BarChart3,
@@ -118,26 +118,12 @@ export default function CookiePolicyPage() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-16">
-          <div className="max-w-4xl mx-auto">
-            <Link href="/">
-              <button className="flex items-center gap-2 text-primary-foreground/90 hover:text-primary-foreground transition-colors mb-6">
-                <ArrowLeft size={20} />
-                Back to Home
-              </button>
-            </Link>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-primary-foreground/10 rounded-full flex items-center justify-center">
-                <Cookie size={32} />
-              </div>
-              <div>
-                <h1 className="text-4xl md:text-5xl font-bold">Cookie Policy</h1>
-                <p className="text-primary-foreground/90 mt-2">Last updated: {lastUpdated}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Page Header */}
+        <PageHeader
+          title="Cookie Policy"
+          description={`Last updated: ${lastUpdated}`}
+          icon={Cookie}
+        />
 
         {/* Introduction */}
         <section className="py-12 px-4 border-b">

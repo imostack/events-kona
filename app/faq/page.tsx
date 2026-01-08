@@ -4,13 +4,13 @@ import { useState } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { 
+import PageHeader from "@/components/page-header"
+import {
   Search,
   ChevronDown,
   HelpCircle,
   Mail,
   MessageSquare,
-  ArrowLeft,
   Filter
 } from "lucide-react"
 
@@ -264,36 +264,28 @@ export default function FAQPage() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <Link href="/">
-              <button className="flex items-center gap-2 text-primary-foreground/90 hover:text-primary-foreground transition-colors mb-6 mx-auto">
-                <ArrowLeft size={20} />
-                Back to Home
-              </button>
-            </Link>
-            <div className="w-16 h-16 bg-primary-foreground/10 text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-6">
-              <HelpCircle size={32} />
-            </div>
-            <h1 className="text-5xl font-bold mb-4">Frequently Asked Questions</h1>
-            <p className="text-xl text-primary-foreground/90 mb-8">
-              Find answers to common questions about EventsKona
-            </p>
-            
-            {/* Search Bar */}
-            <div className="relative max-w-2xl mx-auto">
+        {/* Page Header */}
+        <PageHeader
+          title="Frequently Asked Questions"
+          description="Find answers to common questions about EventsKona"
+          icon={HelpCircle}
+        />
+
+        {/* Search Section */}
+        <section className="bg-secondary/30 border-b border-border py-8 px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
               <input
                 type="text"
                 placeholder="Search for answers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-xl border-0 bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
+                className="w-full pl-12 pr-4 py-4 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-md"
               />
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Filter Section */}
         <section className="py-8 px-4 border-b border-border bg-card">

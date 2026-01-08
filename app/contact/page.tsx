@@ -4,14 +4,14 @@ import { useState } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { 
-  Mail, 
-  Phone, 
-  MapPin, 
+import PageHeader from "@/components/page-header"
+import {
+  Mail,
+  Phone,
+  MapPin,
   Send,
   MessageCircle,
-  Clock,
-  ArrowLeft
+  Clock
 } from "lucide-react"
 
 export default function ContactPage() {
@@ -85,21 +85,12 @@ export default function ContactPage() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-16">
-          <div className="max-w-6xl mx-auto">
-            <Link href="/">
-              <button className="flex items-center gap-2 text-primary-foreground/90 hover:text-primary-foreground transition-colors mb-6">
-                <ArrowLeft size={20} />
-                Back to Home
-              </button>
-            </Link>
-            <h1 className="text-5xl font-bold mb-4">Get in Touch</h1>
-            <p className="text-xl text-primary-foreground/90 max-w-2xl">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-            </p>
-          </div>
-        </div>
+        {/* Page Header */}
+        <PageHeader
+          title="Get in Touch"
+          description="Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible."
+          icon={Mail}
+        />
 
         {/* Contact Content */}
         <section className="py-16 px-4">

@@ -1,10 +1,12 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google"
+import Script from "next/script"
 
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context"
 import CookieConsent from "@/components/cookie-consent"
+import { generateMetadata as generateSEOMetadata, organizationStructuredData, websiteStructuredData } from "@/lib/seo-config"
 
 
 const jakarta = Plus_Jakarta_Sans({
@@ -13,11 +15,7 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 })
 
-export const metadata: Metadata = {
-  title: "EventsKona - Discover & Create Events",
-  description: "Discover, create, and manage amazing events with EventsKona",
-  generator: "Events Kona",
-};
+export const metadata: Metadata = generateSEOMetadata({});
 
 export default function RootLayout({
   children,
@@ -27,6 +25,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${jakarta.variable} font-sans antialiased`}>
+        {/* Structured Data - Organization */}
+        <Script
+          id="organization-schema"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationStructuredData),
+          }}
+        />
+        {/* Structured Data - Website */}
+        <Script
+          id="website-schema"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteStructuredData),
+          }}
+        />
         <AuthProvider>
           {children}
           <CookieConsent />

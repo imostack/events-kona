@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { 
+import PageHeader from "@/components/page-header"
+import {
   Search,
   BookOpen,
   TrendingUp,
@@ -181,26 +182,24 @@ export default function GuidesPage() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-4 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="w-16 h-16 bg-primary-foreground/10 text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-6">
-              <BookOpen size={32} />
-            </div>
-            <h1 className="text-5xl font-bold mb-4">Event Planning Guides</h1>
-            <p className="text-xl text-primary-foreground/90 mb-8 max-w-2xl mx-auto">
-              Everything you need to create, promote, and manage successful events. Learn from experts and grow your event business.
-            </p>
-            
-            {/* Search Bar */}
-            <div className="relative max-w-2xl mx-auto">
+        {/* Page Header */}
+        <PageHeader
+          title="Event Planning Guides"
+          description="Everything you need to create, promote, and manage successful events. Learn from experts and grow your event business."
+          icon={BookOpen}
+        />
+
+        {/* Search Section */}
+        <section className="bg-secondary/30 border-b border-border py-8 px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
               <input
                 type="text"
                 placeholder="Search guides..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-xl border-0 bg-white text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
+                className="w-full pl-12 pr-4 py-4 rounded-xl border border-border bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-md"
               />
             </div>
           </div>
