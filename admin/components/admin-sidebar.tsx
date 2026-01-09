@@ -47,12 +47,14 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       <div className="flex flex-col h-full">
         {/* Logo Header */}
         <div className="p-6 border-b border-border bg-gradient-to-br from-primary/10 to-transparent">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
-            </div>
+          <div className="flex items-center gap-3">
+            <img
+              src="https://res.cloudinary.com/dlcl5rqnh/image/upload/v1767946902/EK_300x_kystpx.webp"
+              alt="EventsKona Logo"
+              className="h-10 w-auto"
+            />
             <div>
-              <h1 className="text-xl font-bold text-foreground">EventsKona</h1>
+              <h1 className="text-lg font-bold text-foreground">EventsKona</h1>
               <p className="text-xs text-muted-foreground">Admin Panel</p>
             </div>
           </div>

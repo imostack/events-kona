@@ -240,7 +240,7 @@ export default function CreateEventPage() {
     console.log("Event created:", payload)
     clearDraft() // Clear draft after successful publish
     alert("Event created successfully!")
-    router.push("/")
+    router.push("/my-events")
   }
 
   const handleCheckout = () => {
