@@ -23,7 +23,7 @@ export default function Navbar() {
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer">
               <img
-                src="https://alproseltech.com/eventskona-logo.png"
+                src="https://alproseltech.com/eventskona-logo.webp"
                 alt="EventsKona Logo"
                 className="h-10 w-auto"
               />

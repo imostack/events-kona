@@ -238,7 +238,7 @@ export default function PrivacyPolicyPage() {
         <section className="py-12 px-4 border-b">
           <div className="max-w-4xl mx-auto">
             <p className="text-lg text-foreground/80 leading-relaxed mb-6">
-              At EventsKona, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our event management platform. Please read this policy carefully to understand our practices regarding your personal data.
+              EventsKona is owned and operated by App Guts. At EventsKona, we take your privacy seriously. This Privacy Policy explains how we (App Guts) collect, use, disclose, and safeguard your information when you use our event management platform. Please read this policy carefully to understand our practices regarding your personal data.
             </p>
             <p className="text-lg text-foreground/80 leading-relaxed mb-6">
               By using EventsKona, you agree to the collection and use of information in accordance with this policy. If you do not agree with our policies and practices, please do not use our services.
@@ -336,7 +336,7 @@ export default function PrivacyPolicyPage() {
                 <div>
                   <p className="font-semibold text-foreground mb-1">Mailing Address:</p>
                   <p className="text-foreground/80">
-                    EventsKona<br />
+                    App Guts (EventsKona)<br />
                     123 Event Street, Victoria Island<br />
                     Lagos, Nigeria
                   </p>

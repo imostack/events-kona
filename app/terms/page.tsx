@@ -30,7 +30,7 @@ export default function TermsOfServicePage() {
           text: "By accessing or using EventsKona (the 'Service', 'Platform', or 'Site'), you agree to be bound by these Terms of Service ('Terms'). If you do not agree to these Terms, you may not access or use the Service."
         },
         {
-          text: "These Terms constitute a legally binding agreement between you and EventsKona ('we', 'us', 'our'). We reserve the right to update these Terms at any time, and your continued use of the Service after such changes constitutes acceptance of the modified Terms."
+          text: "EventsKona is owned and operated by App Guts ('Company', 'we', 'us', 'our'). These Terms constitute a legally binding agreement between you and App Guts. We reserve the right to update these Terms at any time, and your continued use of the Service after such changes constitutes acceptance of the modified Terms."
         },
         {
           text: "You must be at least 13 years old to use EventsKona. If you are under 18, you represent that you have your parent or guardian's permission to use the Service."
@@ -419,7 +419,7 @@ export default function TermsOfServicePage() {
                 <div>
                   <p className="font-semibold text-foreground mb-1">Mailing Address:</p>
                   <p className="text-foreground/80">
-                    EventsKona<br />
+                    App Guts (EventsKona)<br />
                     123 Event Street, Victoria Island<br />
                     Lagos, Nigeria
                   </p>

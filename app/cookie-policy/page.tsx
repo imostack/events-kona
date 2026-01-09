@@ -129,7 +129,7 @@ export default function CookiePolicyPage() {
         <section className="py-12 px-4 border-b">
           <div className="max-w-4xl mx-auto">
             <p className="text-lg text-foreground/80 leading-relaxed mb-6">
-              This Cookie Policy explains how EventsKona uses cookies and similar tracking technologies when you visit our website and use our services. This policy helps you understand what cookies are, how we use them, and your choices regarding their use.
+              This Cookie Policy explains how EventsKona (owned and operated by App Guts) uses cookies and similar tracking technologies when you visit our website and use our services. This policy helps you understand what cookies are, how we use them, and your choices regarding their use.
             </p>
             <p className="text-lg text-foreground/80 leading-relaxed mb-6">
               By continuing to use our website, you consent to our use of cookies in accordance with this Cookie Policy. You can change your cookie preferences at any time using the controls below.

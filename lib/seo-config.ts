@@ -4,7 +4,7 @@ export const siteConfig = {
   name: "EventsKona",
   description: "Discover, create, and manage amazing events in Nigeria, Ghana, and across Africa. Your premier event management platform.",
   url: "https://eventskona.com", 
-  ogImage: "https://alproseltech.com/eventskona-og-image.jpg", // You'll need to create this
+  ogImage: "https://alproseltech.com/eventskona-og-image.jpg", 
   links: {
     twitter: "https://twitter.com/eventskona",
     instagram: "https://instagram.com/eventskona",
@@ -169,6 +169,7 @@ export const organizationStructuredData = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: siteConfig.name,
+  legalName: "App Guts",
   description: siteConfig.description,
   url: siteConfig.url,
   logo: `${siteConfig.url}/eventskona-logo.png`,
@@ -190,6 +191,10 @@ export const organizationStructuredData = {
     addressLocality: "Lagos",
     addressRegion: "Lagos",
     streetAddress: "123 Event Street, Victoria Island",
+  },
+  parentOrganization: {
+    "@type": "Organization",
+    name: "App Guts",
   },
 }
 
