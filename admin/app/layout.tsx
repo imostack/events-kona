@@ -19,7 +19,7 @@ export default function AdminRootLayout({
 }) {
   return (
     <html lang="en" className={jakarta.variable}>
-      <body>
+      <body className="overflow-x-hidden">
         <AdminAuthProvider>{children}</AdminAuthProvider>
       </body>
     </html>

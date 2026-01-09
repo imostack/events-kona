@@ -18,8 +18,8 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
   };
 
   return (
-    <header className="fixed top-0 right-0 lg:left-64 left-0 h-16 bg-white border-b border-gray-200 z-10 shadow-sm">
-      <div className="flex items-center justify-between h-full px-4 sm:px-6">
+    <header className="fixed top-0 right-0 lg:left-64 left-0 h-16 bg-white border-b border-gray-200 z-10 shadow-sm w-auto max-w-full">
+      <div className="flex items-center justify-between h-full px-4 sm:px-6 w-full max-w-full">
         {/* Mobile menu button */}
         <button
           onClick={onMenuClick}
@@ -35,9 +35,9 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
           </h2>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           <button
-            className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             title="Notifications"
           >
             <Bell className="w-5 h-5 text-gray-700" />
@@ -46,11 +46,11 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors flex-shrink-0"
             title="Logout"
           >
-            <LogOut className="w-5 h-5 text-gray-700" />
-            <span className="text-sm font-medium text-gray-900 hidden sm:inline">Logout</span>
+            <LogOut className="w-5 h-5 text-gray-700 flex-shrink-0" />
+            <span className="text-sm font-medium text-gray-900 hidden sm:inline whitespace-nowrap">Logout</span>
           </button>
         </div>
       </div>

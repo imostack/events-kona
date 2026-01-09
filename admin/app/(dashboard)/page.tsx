@@ -139,30 +139,30 @@ export default function AdminDashboardPage() {
   const { admin } = useAdminAuth();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 w-full max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground truncate">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-2">
             Welcome back, {admin?.name}! Here's what's happening today.
           </p>
         </div>
-        <Badge variant="outline" className="px-3 py-1">
+        <Badge variant="outline" className="px-3 py-1 w-fit">
           <Activity className="w-3 h-3 mr-1" />
           Live
         </Badge>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full">
         {stats.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
         <Card>
           <CardHeader>
             <CardTitle>User Growth</CardTitle>
@@ -227,7 +227,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Activity and Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
