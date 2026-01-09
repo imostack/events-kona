@@ -24,9 +24,9 @@ const categories = [
 
 // Hero background images 
 const heroImages = [
-  "https://alproseltech.com/abstract-concept.webp", // abstract
-  "https://alproseltech.com/abstract-concept-2.webp", // abstract
-  "https://alproseltech.com/abstract-concept-3.webp", // abstract
+  "https://res.cloudinary.com/dlcl5rqnh/image/upload/v1767950756/abstract-concept_rxuefx.webp", // abstract
+  "https://res.cloudinary.com/dlcl5rqnh/image/upload/v1767950858/abstract-concept-2_eyzstk.webp", // abstract
+  "https://res.cloudinary.com/dlcl5rqnh/image/upload/v1767950945/abstract-concept-3_zumxcw.webp", // abstract
 ]
 
 export default function Home() {

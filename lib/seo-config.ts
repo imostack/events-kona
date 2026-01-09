@@ -4,7 +4,7 @@ export const siteConfig = {
   name: "EventsKona",
   description: "Discover, create, and manage amazing events in Nigeria, Ghana, and across Africa. Your premier event management platform.",
   url: "https://eventskona.com", 
-  ogImage: "https://alproseltech.com/eventskona-og-image.jpg", 
+  ogImage: "https://res.cloudinary.com/dlcl5rqnh/image/upload/v1767946866/eventskona-og-image_treair.jpg", 
   links: {
     twitter: "https://twitter.com/eventskona",
     instagram: "https://instagram.com/eventskona",
