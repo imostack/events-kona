@@ -38,16 +38,16 @@ export default function AdminDashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <AdminNavbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-
-      {/* Overlay for mobile */}
+      {/* Overlay for mobile - must come before sidebar */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[45] lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <AdminNavbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
 
       <main className="lg:ml-64 pt-16 min-h-screen w-full max-w-full overflow-x-hidden">
         <div className="p-4 sm:p-6 lg:p-8 w-full max-w-full">{children}</div>
