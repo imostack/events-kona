@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { AdminNavbar } from "@/components/admin-navbar";
@@ -13,6 +13,7 @@ export default function AdminDashboardLayout({
 }) {
   const router = useRouter();
   const { admin, isLoading } = useAdminAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !admin) {
@@ -37,10 +38,19 @@ export default function AdminDashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminSidebar />
-      <AdminNavbar />
-      <main className="ml-64 pt-16">
-        <div className="p-8">{children}</div>
+      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <AdminNavbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <main className="lg:ml-64 pt-16">
+        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
     </div>
   );

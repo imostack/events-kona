@@ -26,7 +26,12 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings, permission: "settings" },
 ];
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const { admin, hasPermission, logout } = useAdminAuth();
 
@@ -36,7 +41,9 @@ export function AdminSidebar() {
   });
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-card border-r border-border shadow-xl z-50">
+    <aside className={`fixed left-0 top-0 h-screen w-64 bg-card border-r border-border shadow-xl z-50 transition-transform duration-300 lg:translate-x-0 ${
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    }`}>
       <div className="flex flex-col h-full">
         {/* Logo Header */}
         <div className="p-6 border-b border-border bg-gradient-to-br from-primary/10 to-transparent">
@@ -61,6 +68,7 @@ export function AdminSidebar() {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={onClose}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative
                   ${
