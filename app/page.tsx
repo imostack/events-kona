@@ -29,6 +29,7 @@ const heroImages = [
   "https://res.cloudinary.com/dlcl5rqnh/image/upload/v1767950945/abstract-concept-3_zumxcw.webp", // abstract
 ]
 
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState("all")
