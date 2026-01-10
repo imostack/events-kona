@@ -53,10 +53,6 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               alt="EventsKona Logo"
               className="h-10 w-auto"
             />
-            <div>
-              <h1 className="text-lg font-bold text-foreground">EventsKona</h1>
-              <p className="text-xs text-muted-foreground">Admin Panel</p>
-            </div>
           </div>
         </div>
 
