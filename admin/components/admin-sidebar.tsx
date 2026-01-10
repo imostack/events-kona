@@ -41,18 +41,22 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   });
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen w-64 bg-card border-r border-border shadow-xl z-50 transition-transform duration-300 lg:translate-x-0 ${
+    <aside className={`fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 shadow-xl z-50 transition-transform duration-300 lg:translate-x-0 ${
       isOpen ? "translate-x-0" : "-translate-x-full"
     }`}>
       <div className="flex flex-col h-full">
         {/* Logo Header */}
-        <div className="p-6 border-b border-border bg-gradient-to-br from-primary/10 to-transparent">
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-br from-purple-50 to-white">
           <div className="flex items-center gap-3">
             <img
               src="https://res.cloudinary.com/dlcl5rqnh/image/upload/v1767946902/EK_300x_kystpx.webp"
               alt="EventsKona Logo"
               className="h-10 w-auto"
             />
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">EventsKona</h1>
+              <p className="text-xs text-gray-500">Admin Panel</p>
+            </div>
           </div>
         </div>
 
@@ -71,12 +75,12 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative
                   ${
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                   }
                 `}
               >
-                <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? '' : 'group-hover:text-primary'}`} />
+                <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? '' : 'group-hover:text-purple-600'}`} />
                 <span className="font-medium flex-1">{item.name}</span>
                 {item.badge && !isActive && (
                   <Badge variant="secondary" className="text-xs px-2 py-0">
@@ -84,7 +88,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                   </Badge>
                 )}
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-foreground rounded-r-full"></div>
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full"></div>
                 )}
               </Link>
             );
@@ -93,27 +97,27 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
         {/* User Profile Section */}
         {admin && (
-          <div className="p-4 border-t border-border bg-muted/30">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-card hover:bg-accent transition-colors group">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
-                <span className="text-primary-foreground font-bold text-base">
+          <div className="p-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white hover:bg-gray-100 transition-colors group">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-600 to-purple-500 flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-base">
                   {admin.name.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">
+                <p className="text-sm font-semibold text-gray-900 truncate">
                   {admin.name}
                 </p>
-                <p className="text-xs text-muted-foreground capitalize">
+                <p className="text-xs text-gray-500 capitalize">
                   {admin.role.replace("_", " ")}
                 </p>
               </div>
               <button
                 onClick={logout}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-destructive/10 rounded-lg"
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-lg"
                 title="Logout"
               >
-                <LogOut className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                <LogOut className="w-4 h-4 text-gray-500 hover:text-red-600" />
               </button>
             </div>
           </div>
