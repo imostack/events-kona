@@ -1,0 +1,1120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====================
+// ENUMS
+// =====================
+
+enum UserRole {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum EventFormat {
+  IN_PERSON
+  ONLINE
+  HYBRID
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum AgeRestriction {
+  ALL_AGES
+  FAMILY_FRIENDLY
+  EIGHTEEN_PLUS
+  TWENTYONE_PLUS
+}
+
+enum RefundPolicy {
+  NON_REFUNDABLE
+  REFUNDABLE
+  PARTIAL
+}
+
+enum TicketTypeEnum {
+  REGULAR
+  VIP
+  EARLY_BIRD
+  GROUP
+  STUDENT
+  MEMBER
+}
+
+enum TicketStatus {
+  ACTIVE
+  USED
+  CANCELLED
+  REFUNDED
+  TRANSFERRED
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  CANCELLED
+  ATTENDED
+  NO_SHOW
+}
+
+enum PaymentType {
+  TICKET
+  PROMOTION
+  DONATION
+  REFUND
+}
+
+enum PaymentProvider {
+  PAYSTACK
+  STRIPE
+  FLUTTERWAVE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  MOBILE_MONEY
+  WALLET
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+  VIEWER
+}
+
+enum MessageType {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum MessagePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationType {
+  SYSTEM
+  EVENT
+  TICKET
+  PAYMENT
+  PROMOTION
+  SUPPORT
+  SECURITY
+}
+
+enum SupportCategory {
+  TECHNICAL
+  BILLING
+  ACCOUNT
+  EVENT
+  OTHER
+}
+
+enum SupportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum SupportPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  DEBUG
+}
+
+// =====================
+// CORE MODELS
+// =====================
+
+model User {
+  id                 String     @id @default(cuid())
+  email              String     @unique
+  passwordHash       String
+  firstName          String?
+  lastName           String?
+  phone              String?    @unique
+  avatarUrl          String?
+  bio                String?
+  role               UserRole   @default(USER)
+  status             UserStatus @default(ACTIVE)
+  emailVerified      Boolean    @default(false)
+  phoneVerified      Boolean    @default(false)
+
+  // Preferences (stored as JSON for flexibility)
+  preferences        Json?      @default("{}")
+  notificationSettings Json?    @default("{}")
+  privacySettings    Json?      @default("{}")
+
+  // Organizer fields (populated when role = ORGANIZER)
+  organizerName      String?
+  organizerSlug      String?    @unique
+  organizerBio       String?
+  organizerLogo      String?
+  organizerWebsite   String?
+  organizerSocials   Json?      @default("{}")
+  organizerVerified  Boolean    @default(false)
+  organizerRating    Float?     @default(0.0)
+  organizerSince     DateTime?
+
+  // Financial
+  totalSpent         Decimal    @default(0) @db.Decimal(12, 2)
+  totalEarned        Decimal    @default(0) @db.Decimal(12, 2)
+  currency           String     @default("NGN")
+
+  // Suspension (admin action)
+  suspendedBy        String?
+  suspendedAt        DateTime?
+  suspensionReason   String?
+
+  // Tokens for email verification / password reset
+  verificationToken  String?
+  verificationExpiry DateTime?
+  resetToken         String?
+  resetTokenExpiry   DateTime?
+  refreshToken       String?
+
+  // Timestamps
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  lastLoginAt        DateTime?
+  emailVerifiedAt    DateTime?
+  phoneVerifiedAt    DateTime?
+
+  // Relations
+  events             Event[]
+  orders             Order[]
+  tickets            Ticket[]
+  registrations      Registration[]
+  followers          UserFollower[]    @relation("followers")
+  following          UserFollower[]    @relation("following")
+  notifications      Notification[]
+  supportTickets     SupportTicket[]
+  auditLogs          AuditLog[]        @relation("targetUser")
+  messages           Message[]         @relation("recipient")
+  payments           Payment[]
+  payouts            Payout[]
+  attendees          Attendee[]
+  payoutAccount      PayoutAccount?
+  likedEvents        EventLike[]
+  supportReplies     SupportReply[]
+  sentTransfers      TicketTransfer[]  @relation("sentTransfers")
+  receivedTransfers  TicketTransfer[]  @relation("receivedTransfers")
+  systemLogs         SystemLog[]
+  reviews            Review[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@index([organizerSlug])
+  @@index([createdAt])
+  @@index([lastLoginAt])
+  @@map("users")
+}
+
+model Event {
+  id                   String         @id @default(cuid())
+  title                String
+  slug                 String         @unique
+  description          String
+  shortDescription     String?
+
+  // Format & Location
+  eventFormat          EventFormat    @default(IN_PERSON)
+  venueName            String?
+  address              String?
+  city                 String?
+  state                String?
+  country              String         @default("Nigeria")
+  latitude             Float?
+  longitude            Float?
+  onlineUrl            String?
+  platform             String?
+
+  // Timing
+  startDate            DateTime
+  startTime            String?
+  endDate              DateTime?
+  endTime              String?
+  timezone             String         @default("Africa/Lagos")
+  doorsOpenTime        String?
+
+  // Media
+  coverImage           String?
+  images               String[]
+  videoUrl             String?
+
+  // Pricing & Status
+  isFree               Boolean        @default(false)
+  currency             String         @default("NGN")
+  status               EventStatus    @default(DRAFT)
+  isFeatured           Boolean        @default(false)
+  isCancelled          Boolean        @default(false)
+  isPublished          Boolean        @default(false)
+  isPrivate            Boolean        @default(false)
+
+  // Capacity & Restrictions
+  capacity             Int?
+  ageRestriction       AgeRestriction @default(ALL_AGES)
+  tags                 String[]
+  refundPolicy         RefundPolicy   @default(NON_REFUNDABLE)
+  contactEmail         String?
+  contactPhone         String?
+  termsConditions      String?
+
+  // Recurring Events
+  isRecurring          Boolean        @default(false)
+  recurrenceConfig     Json?
+
+  // Moderation (store admin ID as string - not FK relation to avoid circular deps)
+  approvedBy           String?
+  approvedAt           DateTime?
+  rejectedBy           String?
+  rejectedAt           DateTime?
+  rejectionReason      String?
+  featuredBy           String?
+  featuredAt           DateTime?
+  publishedAt          DateTime?
+  cancelledAt          DateTime?
+
+  // Stats
+  viewCount            Int            @default(0)
+  shareCount           Int            @default(0)
+  interestedCount      Int            @default(0)
+  likesCount           Int            @default(0)
+  ticketsSold          Int            @default(0)
+
+  // Promotions
+  promoted             Boolean        @default(false)
+  promotionPackage     String?
+  promotionExpiry      DateTime?
+
+  // Financial
+  serviceFeePercentage Float          @default(5.0)
+  minTicketPrice       Decimal?       @db.Decimal(12, 2)
+  maxTicketPrice       Decimal?       @db.Decimal(12, 2)
+
+  // Timestamps
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  // Relations
+  organizerId          String
+  organizer            User           @relation(fields: [organizerId], references: [id])
+  categoryId           String?
+  category             Category?      @relation(fields: [categoryId], references: [id])
+  ticketTypes          TicketType[]
+  orders               Order[]
+  tickets              Ticket[]
+  registrations        Registration[]
+  likes                EventLike[]
+  attendees            Attendee[]
+  promoCodes           PromoCode[]
+  payments             Payment[]
+  reviews              Review[]
+
+  @@index([organizerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([isFree])
+  @@index([startDate])
+  @@index([createdAt])
+  @@index([country])
+  @@index([city])
+  @@index([isPublished, startDate])
+  @@index([promoted, promotionExpiry])
+  @@index([slug])
+  @@map("events")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  icon        String?
+  color       String?
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  eventCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  events Event[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([slug])
+  @@map("categories")
+}
+
+// =====================
+// TICKET & ORDER MODELS
+// =====================
+
+model TicketType {
+  id             String         @id @default(cuid())
+  eventId        String
+  name           String
+  description    String?
+  type           TicketTypeEnum @default(REGULAR)
+  price          Decimal        @db.Decimal(12, 2)
+  currency       String         @default("NGN")
+  quantity       Int
+  quantitySold   Int            @default(0)
+  maxPerOrder    Int            @default(10)
+  minPerOrder    Int            @default(1)
+  salesStartDate DateTime?
+  salesEndDate   DateTime?
+  isActive       Boolean        @default(true)
+  isHidden       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  event          Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets        Ticket[]
+  orderItems     OrderItem[]
+  attendees      Attendee[]
+  registrations  Registration[]
+  promoCodeLinks PromoCodeTicketType[]
+
+  @@index([eventId])
+  @@index([isActive])
+  @@index([isActive, salesStartDate, salesEndDate])
+  @@index([price])
+  @@map("ticket_types")
+}
+
+model Order {
+  id               String        @id @default(cuid())
+  userId           String
+  eventId          String
+  orderNumber      String        @unique
+  status           OrderStatus   @default(PENDING)
+
+  // Financial
+  subtotal         Decimal       @db.Decimal(12, 2)
+  discountAmount   Decimal       @default(0) @db.Decimal(12, 2)
+  serviceFee       Decimal       @default(0) @db.Decimal(12, 2)
+  taxAmount        Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount      Decimal       @db.Decimal(12, 2)
+  currency         String        @default("NGN")
+
+  // Payment
+  paymentMethod    PaymentMethod?
+  paymentReference String?       @unique
+  paymentIntentId  String?
+  paidAt           DateTime?
+
+  // Promo
+  promoCodeId      String?
+
+  // Buyer Info
+  buyerEmail       String
+  buyerName        String
+  buyerPhone       String?
+  buyerMetadata    Json?
+
+  // Timestamps
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  refundedAt       DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+
+  // Relations
+  user             User          @relation(fields: [userId], references: [id])
+  event            Event         @relation(fields: [eventId], references: [id])
+  tickets          Ticket[]
+  payment          Payment?
+  promoCode        PromoCode?    @relation(fields: [promoCodeId], references: [id])
+  orderItems       OrderItem[]
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([paymentReference])
+  @@index([status, createdAt])
+  @@index([buyerEmail])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String     @id @default(cuid())
+  orderId      String
+  ticketTypeId String
+  quantity     Int        @default(1)
+  unitPrice    Decimal    @db.Decimal(12, 2)
+  totalPrice   Decimal    @db.Decimal(12, 2)
+  createdAt    DateTime   @default(now())
+
+  order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+
+  @@unique([orderId, ticketTypeId])
+  @@index([orderId])
+  @@index([ticketTypeId])
+  @@map("order_items")
+}
+
+model Ticket {
+  id               String       @id @default(cuid())
+  orderId          String
+  userId           String
+  eventId          String
+  ticketTypeId     String
+  ticketNumber     String       @unique
+  qrCode           String?
+  status           TicketStatus @default(ACTIVE)
+
+  // Check-in
+  checkedIn        Boolean      @default(false)
+  checkedInAt      DateTime?
+  checkedInBy      String?
+
+  // Transfer
+  transferToken    String?      @unique
+  transferTo       String?
+  transferAt       DateTime?
+  transferStatus   String?
+
+  // Refund
+  refundRequested  Boolean      @default(false)
+  refundRequestedAt DateTime?
+  refundReason     String?
+  refundedAt       DateTime?
+
+  // Attendee Info
+  attendeeName     String?
+  attendeeEmail    String?
+  attendeePhone    String?
+  attendeeMetadata Json?
+
+  // Timestamps
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  expiresAt        DateTime?
+
+  // Relations
+  order            Order        @relation(fields: [orderId], references: [id])
+  user             User         @relation(fields: [userId], references: [id])
+  event            Event        @relation(fields: [eventId], references: [id])
+  ticketType       TicketType   @relation(fields: [ticketTypeId], references: [id])
+  refund           Refund?
+  attendees        Attendee[]
+  transferHistory  TicketTransfer[] @relation("transferredTickets")
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@index([ticketNumber])
+  @@index([checkedInAt])
+  @@index([transferToken])
+  @@index([attendeeEmail])
+  @@map("tickets")
+}
+
+model TicketTransfer {
+  id          String    @id @default(cuid())
+  ticketId    String
+  fromUserId  String
+  toUserId    String?
+  toEmail     String?
+  status      String    @default("PENDING")
+  token       String    @unique
+  expiresAt   DateTime
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  ticket      Ticket    @relation("transferredTickets", fields: [ticketId], references: [id])
+  fromUser    User      @relation("sentTransfers", fields: [fromUserId], references: [id])
+  toUser      User?     @relation("receivedTransfers", fields: [toUserId], references: [id])
+
+  @@index([ticketId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("ticket_transfers")
+}
+
+model Registration {
+  id           String             @id @default(cuid())
+  userId       String
+  eventId      String
+  ticketTypeId String?
+  status       RegistrationStatus @default(REGISTERED)
+  attendeeInfo Json?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id])
+  event        Event              @relation(fields: [eventId], references: [id])
+  ticketType   TicketType?        @relation(fields: [ticketTypeId], references: [id])
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@map("registrations")
+}
+
+// =====================
+// PAYMENT MODELS
+// =====================
+
+model Payment {
+  id                String          @id @default(cuid())
+  orderId           String?         @unique
+  userId            String?
+  eventId           String?
+  type              PaymentType     @default(TICKET)
+  amount            Decimal         @db.Decimal(12, 2)
+  currency          String          @default("NGN")
+  paymentReference  String          @unique
+  provider          PaymentProvider @default(PAYSTACK)
+  providerReference String?         @unique
+  method            PaymentMethod?
+  status            PaymentStatus   @default(PENDING)
+  metadata          Json?
+  paystackData      Json?
+  description       String?
+  paidAt            DateTime?
+  refundedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  order             Order?          @relation(fields: [orderId], references: [id])
+  user              User?           @relation(fields: [userId], references: [id])
+  event             Event?          @relation(fields: [eventId], references: [id])
+  refunds           Refund[]
+
+  @@index([paymentReference])
+  @@index([providerReference])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([userId])
+  @@index([eventId])
+  @@map("payments")
+}
+
+model Refund {
+  id                String       @id @default(cuid())
+  ticketId          String?      @unique
+  paymentId         String
+  amount            Decimal      @db.Decimal(12, 2)
+  currency          String       @default("NGN")
+  reason            String
+  status            RefundStatus @default(PENDING)
+  processedBy       String?
+  processedAt       DateTime?
+  providerReference String?
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  ticket            Ticket?      @relation(fields: [ticketId], references: [id])
+  payment           Payment      @relation(fields: [paymentId], references: [id])
+
+  @@index([ticketId])
+  @@index([paymentId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@map("refunds")
+}
+
+model PayoutAccount {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  bankName      String
+  accountNumber String
+  accountName   String
+  bankCode      String?
+  currency      String   @default("NGN")
+  recipientCode String?
+  isVerified    Boolean  @default(false)
+  verifiedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+  payouts       Payout[]
+
+  @@index([userId])
+  @@index([isVerified])
+  @@map("payout_accounts")
+}
+
+model Payout {
+  id                String        @id @default(cuid())
+  userId            String
+  payoutAccountId   String?
+  amount            Decimal       @db.Decimal(12, 2)
+  currency          String        @default("NGN")
+  status            PayoutStatus  @default(PENDING)
+  reference         String        @unique
+  providerReference String?
+  metadata          Json?
+  processedAt       DateTime?
+  failedReason      String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  user              User          @relation(fields: [userId], references: [id])
+  payoutAccount     PayoutAccount? @relation(fields: [payoutAccountId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@map("payouts")
+}
+
+// =====================
+// ADMIN MODELS
+// =====================
+
+model Admin {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  name           String
+  role           AdminRole @default(SUPER_ADMIN)
+  avatarUrl      String?
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  permissions    Json      @default("{}")
+  refreshToken   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  auditLogs      AuditLog[]
+  messages       Message[]      @relation("sender")
+  supportReplies SupportReply[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@map("admins")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminId     String?
+  userId      String?
+  action      String
+  entityType  String?
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  admin       Admin?   @relation(fields: [adminId], references: [id])
+  user        User?    @relation("targetUser", fields: [userId], references: [id])
+
+  @@index([adminId])
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model Setting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@map("settings")
+}
+
+// =====================
+// COMMUNICATION MODELS
+// =====================
+
+model Message {
+  id          String          @id @default(cuid())
+  recipientId String
+  subject     String
+  body        String
+  type        MessageType     @default(EMAIL)
+  priority    MessagePriority @default(NORMAL)
+  sentBy      String?
+  isRead      Boolean         @default(false)
+  readAt      DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime        @default(now())
+
+  recipient   User            @relation("recipient", fields: [recipientId], references: [id])
+  sender      Admin?          @relation("sender", fields: [sentBy], references: [id])
+
+  @@index([recipientId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type, createdAt])
+  @@map("messages")
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String
+  message    String
+  data       Json?
+  isRead     Boolean          @default(false)
+  isSent     Boolean          @default(false)
+  sendMethod String[]
+  readAt     DateTime?
+  sentAt     DateTime?
+  createdAt  DateTime         @default(now())
+
+  user       User             @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// =====================
+// SUPPORT MODELS
+// =====================
+
+model SupportTicket {
+  id          String          @id @default(cuid())
+  userId      String
+  ticketId    String          @unique
+  subject     String
+  description String
+  category    SupportCategory
+  status      SupportStatus   @default(OPEN)
+  priority    SupportPriority @default(NORMAL)
+  assignedTo  String?
+  closedAt    DateTime?
+  closedBy    String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user        User            @relation(fields: [userId], references: [id])
+  replies     SupportReply[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([priority, createdAt])
+  @@index([ticketId])
+  @@map("support_tickets")
+}
+
+model SupportReply {
+  id          String        @id @default(cuid())
+  ticketId    String
+  userId      String?
+  adminId     String?
+  message     String
+  attachments String[]
+  isInternal  Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id])
+  user        User?         @relation(fields: [userId], references: [id])
+  admin       Admin?        @relation(fields: [adminId], references: [id])
+
+  @@index([ticketId])
+  @@index([createdAt])
+  @@map("support_replies")
+}
+
+// =====================
+// SOCIAL FEATURES
+// =====================
+
+model EventLike {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_likes")
+}
+
+model UserFollower {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("user_followers")
+}
+
+// =====================
+// PROMOTIONS & MARKETING
+// =====================
+
+model PromoCode {
+  id                     String              @id @default(cuid())
+  eventId                String
+  code                   String
+  discountType           DiscountType
+  discountValue          Decimal             @db.Decimal(10, 2)
+  maxUses                Int?
+  usedCount              Int                 @default(0)
+  maxUsesPerUser         Int                 @default(1)
+  minOrderAmount         Decimal?            @db.Decimal(12, 2)
+  validFrom              DateTime?
+  validUntil             DateTime?
+  isActive               Boolean             @default(true)
+  appliesToAllTicketTypes Boolean            @default(true)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  event                  Event               @relation(fields: [eventId], references: [id])
+  orders                 Order[]
+  ticketTypes            PromoCodeTicketType[]
+
+  @@unique([eventId, code])
+  @@index([eventId])
+  @@index([code])
+  @@index([isActive])
+  @@index([isActive, validFrom, validUntil])
+  @@map("promo_codes")
+}
+
+model PromoCodeTicketType {
+  id           String     @id @default(cuid())
+  promoCodeId  String
+  ticketTypeId String
+  createdAt    DateTime   @default(now())
+
+  promoCode    PromoCode  @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+
+  @@unique([promoCodeId, ticketTypeId])
+  @@index([promoCodeId])
+  @@index([ticketTypeId])
+  @@map("promo_code_ticket_types")
+}
+
+model PromotionPackage {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  features    String[]
+  duration    Int
+  price       Decimal  @db.Decimal(12, 2)
+  currency    String   @default("NGN")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+  @@map("promotion_packages")
+}
+
+// =====================
+// CONTENT
+// =====================
+
+model Guide {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  content     String
+  excerpt     String?
+  category    String
+  author      String?
+  isPublished Boolean   @default(false)
+  isFeatured  Boolean   @default(false)
+  viewCount   Int       @default(0)
+  featuredAt  DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([category])
+  @@index([isPublished])
+  @@index([isFeatured])
+  @@map("guides")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  userId     String
+  eventId    String
+  rating     Int
+  comment    String?
+  isVerified Boolean  @default(false)
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id])
+  event      Event    @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+// =====================
+// ATTENDEE MANAGEMENT
+// =====================
+
+model Attendee {
+  id           String      @id @default(cuid())
+  eventId      String
+  userId       String?
+  ticketId     String?     @unique
+  ticketTypeId String?
+  name         String
+  email        String
+  phone        String?
+  company      String?
+  jobTitle     String?
+  checkedIn    Boolean     @default(false)
+  checkedInAt  DateTime?
+  emailSent    Boolean     @default(false)
+  smsSent      Boolean     @default(false)
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  event        Event       @relation(fields: [eventId], references: [id])
+  user         User?       @relation(fields: [userId], references: [id])
+  ticket       Ticket?     @relation(fields: [ticketId], references: [id])
+  ticketType   TicketType? @relation(fields: [ticketTypeId], references: [id])
+
+  @@unique([eventId, email])
+  @@index([eventId])
+  @@index([email])
+  @@index([checkedIn])
+  @@index([ticketTypeId])
+  @@map("attendees")
+}
+
+// =====================
+// SYSTEM LOGGING
+// =====================
+
+model SystemLog {
+  id         String   @id @default(cuid())
+  level      LogLevel @default(INFO)
+  action     String
+  entityType String?
+  entityId   String?
+  userId     String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([level])
+  @@index([action])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("system_logs")
+}
