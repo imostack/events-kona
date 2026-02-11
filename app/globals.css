@@ -8,7 +8,7 @@
 
 /* font variables */
 :root {
-   --font-sans: var(--font-jakarta);
+   --font-sans: var(--font-jakarta), "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
   /* EventsKona Color System - Modern & Energetic */
   --background: oklch(0.98 0 0);
@@ -134,4 +134,13 @@
   a {
     @apply text-primary hover:text-primary-80 transition-colors;
   }
+}
+
+/* Hide scrollbar for horizontal sliders */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

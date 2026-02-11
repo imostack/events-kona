@@ -2,34 +2,77 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { useAuth } from "@/lib/auth-context"
-import { ArrowLeft, Upload, User, Mail, Phone, MapPin, Save } from "lucide-react"
+import { apiClient, ApiError } from "@/lib/api-client"
+import { ArrowLeft, Upload, User, Mail, Phone, MapPin, Save, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    if (!user) {
-      router.push("/login")
-    }
-  }, [user, router])
-
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
+    firstName: "",
+    lastName: "",
+    email: "",
     phone: "",
     bio: "",
     country: "Nigeria" as "Nigeria" | "Ghana" | "Kenya",
     profileImage: null as File | null,
+    profileImageUrl: "",
   })
 
-  const [saved, setSaved] = useState(false)
+  const [isDataLoading, setIsDataLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [saveError, setSaveError] = useState("")
+
+  // Load user data from API
+  const loadUserData = useCallback(async () => {
+    try {
+      setIsDataLoading(true)
+      const data = await apiClient<{
+        firstName: string
+        lastName: string
+        email: string
+        phone: string | null
+        bio: string | null
+        avatarUrl: string | null
+        preferences: Record<string, unknown> | null
+      }>("/api/auth/onboarding")
+
+      setFormData(prev => ({
+        ...prev,
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        bio: data.bio || "",
+        profileImageUrl: data.avatarUrl || "",
+        country: ((data.preferences as Record<string, unknown>)?.country as "Nigeria" | "Ghana" | "Kenya") || "Nigeria",
+      }))
+    } catch (error) {
+      console.error("Failed to load user data:", error)
+    } finally {
+      setIsDataLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (user) {
+      loadUserData()
+    }
+  }, [user, loadUserData])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -49,10 +92,32 @@ export default function ProfilePage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    setIsSaving(true)
+    setSaveError("")
+
+    try {
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          bio: formData.bio,
+          preferences: {
+            country: formData.country,
+          },
+        }),
+      })
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
+    } catch (error) {
+      setSaveError(error instanceof ApiError ? error.message : "Failed to save profile")
+      setTimeout(() => setSaveError(""), 5000)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (!user) return null
@@ -85,186 +150,184 @@ export default function ProfilePage() {
         {/* Profile Form */}
         <section className="py-12 px-4">
           <div className="max-w-4xl mx-auto">
-            {saved && (
-              <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6">
+            {saveSuccess && (
+              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+                <CheckCircle2 size={20} />
                 Profile updated successfully!
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Profile Picture Section */}
-              <div className="bg-card border border-border rounded-lg p-6">
-                <h2 className="text-xl font-bold text-foreground mb-4">Profile Picture</h2>
-                <div className="flex items-center gap-6">
-                  <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center text-primary text-3xl font-bold">
-                    {formData.profileImage ? (
-                      <img
-                        src={URL.createObjectURL(formData.profileImage) || "/placeholder.svg"}
-                        alt="Profile"
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <User size={40} />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      id="profile-image-upload"
-                    />
-                    <label
-                      htmlFor="profile-image-upload"
-                      className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
-                    >
-                      <Upload size={18} />
-                      Upload Photo
-                    </label>
-                    <p className="text-sm text-muted-foreground mt-2">JPG, PNG or GIF. Max 5MB.</p>
-                  </div>
-                </div>
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+                <AlertCircle size={20} />
+                {saveError}
               </div>
+            )}
 
-              {/* Personal Information */}
-              <div className="bg-card border border-border rounded-lg p-6">
-                <h2 className="text-xl font-bold text-foreground mb-4">Personal Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Full Name</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 text-muted-foreground" size={18} />
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Enter your full name"
-                        className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
+            {isDataLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="animate-spin text-primary" size={32} />
+                <span className="ml-3 text-muted-foreground">Loading your profile...</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Profile Picture Section */}
+                <div className="bg-card border border-border rounded-lg p-6">
+                  <h2 className="text-xl font-bold text-foreground mb-4">Profile Picture</h2>
+                  <div className="flex items-center gap-6">
+                    <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center text-primary text-3xl font-bold overflow-hidden">
+                      {formData.profileImage ? (
+                        <img
+                          src={URL.createObjectURL(formData.profileImage)}
+                          alt="Profile"
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : formData.profileImageUrl ? (
+                        <img
+                          src={formData.profileImageUrl}
+                          alt="Profile"
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <User size={40} />
+                      )}
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Email Address</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                    <div className="flex-1">
                       <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Enter your email"
-                        className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="profile-image-upload"
                       />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Phone Number</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 text-muted-foreground" size={18} />
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="Enter your phone number"
-                        className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-foreground mb-2">Country</label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 text-muted-foreground" size={18} />
-                      <select
-                        name="country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                      <label
+                        htmlFor="profile-image-upload"
+                        className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
                       >
-                        <option value="Nigeria">Nigeria</option>
-                        <option value="Ghana">Ghana</option>
-                        <option value="Kenya">Kenya</option>
-                      </select>
+                        <Upload size={18} />
+                        Upload Photo
+                      </label>
+                      <p className="text-sm text-muted-foreground mt-2">JPG, PNG or GIF. Max 5MB.</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6">
-                  <label className="block text-sm font-semibold text-foreground mb-2">Bio</label>
-                  <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    placeholder="Tell us about yourself..."
-                    rows={4}
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                  />
+                {/* Personal Information */}
+                <div className="bg-card border border-border rounded-lg p-6">
+                  <h2 className="text-xl font-bold text-foreground mb-4">Personal Information</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">First Name</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                        <input
+                          type="text"
+                          name="firstName"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          placeholder="Enter your first name"
+                          className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">Last Name</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                        <input
+                          type="text"
+                          name="lastName"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          placeholder="Enter your last name"
+                          className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">Email Address</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          disabled
+                          className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-muted text-muted-foreground cursor-not-allowed"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">Phone Number</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          placeholder="Enter your phone number"
+                          className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-2">Country</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 text-muted-foreground" size={18} />
+                        <select
+                          name="country"
+                          value={formData.country}
+                          onChange={handleChange}
+                          className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                        >
+                          <option value="Nigeria">Nigeria</option>
+                          <option value="Ghana">Ghana</option>
+                          <option value="Kenya">Kenya</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <label className="block text-sm font-semibold text-foreground mb-2">Bio</label>
+                    <textarea
+                      name="bio"
+                      value={formData.bio}
+                      onChange={handleChange}
+                      placeholder="Tell us about yourself..."
+                      rows={4}
+                      className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Account Settings */}
-              <div className="bg-card border border-border rounded-lg p-6">
-                <h2 className="text-xl font-bold text-foreground mb-4">Account Settings</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <div>
-                      <p className="font-semibold text-foreground">Email Notifications</p>
-                      <p className="text-sm text-muted-foreground">Receive updates about your events</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-primary peer-focus:ring-2 peer-focus:ring-primary after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <div>
-                      <p className="font-semibold text-foreground">Marketing Communications</p>
-                      <p className="text-sm text-muted-foreground">Receive promotional offers and updates</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-primary peer-focus:ring-2 peer-focus:ring-primary after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between py-3">
-                    <div>
-                      <p className="font-semibold text-foreground">SMS Notifications</p>
-                      <p className="text-sm text-muted-foreground">Get event reminders via SMS</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-primary peer-focus:ring-2 peer-focus:ring-primary after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="flex gap-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Save size={20} />
-                  Save Changes
-                </button>
-                <Link href="/">
+                {/* Save Button */}
+                <div className="flex gap-4">
                   <button
-                    type="button"
-                    className="px-8 py-3 border border-border text-foreground rounded-lg font-semibold hover:bg-muted transition-colors"
+                    type="submit"
+                    disabled={isSaving}
+                    className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    Cancel
+                    {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </button>
-                </Link>
-              </div>
-            </form>
+                  <Link href="/settings">
+                    <button
+                      type="button"
+                      className="px-8 py-3 border border-border text-foreground rounded-lg font-semibold hover:bg-muted transition-colors"
+                    >
+                      More Settings
+                    </button>
+                  </Link>
+                </div>
+              </form>
+            )}
           </div>
         </section>
       </main>

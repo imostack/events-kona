@@ -5,24 +5,27 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { Mail, Lock, Eye, EyeOff, User } from "lucide-react"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { Mail, Lock, Eye, EyeOff, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { ApiError } from "@/lib/api-client"
 
 export default function SignupPage() {
   const router = useRouter()
   const { signup } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    if (!name.trim()) newErrors.name = "Full name is required"
+    if (!firstName.trim()) newErrors.firstName = "First name is required"
+    if (!lastName.trim()) newErrors.lastName = "Last name is required"
     if (!email.trim()) {
       newErrors.email = "Email is required"
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -30,8 +33,10 @@ export default function SignupPage() {
     }
     if (!password) {
       newErrors.password = "Password is required"
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters"
+    } else if (password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters"
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=])/.test(password)) {
+      newErrors.password = "Must include uppercase, lowercase, number, and special character"
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -42,13 +47,18 @@ export default function SignupPage() {
     if (validateForm()) {
       setIsLoading(true)
       try {
-        await signup(email, password, name)
-        // Redirect to onboarding after successful signup
+        await signup(email, password, firstName, lastName)
         router.push("/onboarding")
       } catch (error) {
-        console.error("[v0] Signup error:", error)
-        setErrors({ submit: "Failed to create account. Please try again." })
-      } finally {
+        if (error instanceof ApiError) {
+          if (error.code === "EMAIL_EXISTS") {
+            setErrors({ submit: "An account with this email already exists." })
+          } else {
+            setErrors({ submit: error.message })
+          }
+        } else {
+          setErrors({ submit: "Failed to create account. Please try again." })
+        }
         setIsLoading(false)
       }
     }
@@ -71,19 +81,35 @@ export default function SignupPage() {
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Full Name</label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 text-muted-foreground" size={20} />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg bg-background border-border focus:ring-2 focus:ring-primary outline-none"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">First Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 text-muted-foreground" size={20} />
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg bg-background border-border focus:ring-2 focus:ring-primary outline-none"
+                  />
+                </div>
+                {errors.firstName && <p className="text-destructive text-sm mt-1">{errors.firstName}</p>}
               </div>
-              {errors.name && <p className="text-destructive text-sm mt-1">{errors.name}</p>}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">Last Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 text-muted-foreground" size={20} />
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg bg-background border-border focus:ring-2 focus:ring-primary outline-none"
+                  />
+                </div>
+                {errors.lastName && <p className="text-destructive text-sm mt-1">{errors.lastName}</p>}
+              </div>
             </div>
 
             <div>
@@ -121,6 +147,9 @@ export default function SignupPage() {
                 </button>
               </div>
               {errors.password && <p className="text-destructive text-sm mt-1">{errors.password}</p>}
+              <p className="text-xs text-muted-foreground mt-1">
+                Min 8 characters with uppercase, lowercase, number, and special character
+              </p>
             </div>
 
             <button

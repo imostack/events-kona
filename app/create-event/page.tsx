@@ -1,12 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { Upload, ArrowLeft, ArrowRight, MapPin, Video, Plus, Trash2, Check, Megaphone, Zap, TrendingUp, Star, Repeat, Calendar, Info, Users, Tag, Phone, Mail, X, Save } from "lucide-react"
+import dynamic from "next/dynamic"
+import { Upload, ArrowLeft, ArrowRight, MapPin, Video, Plus, Trash2, Check, Megaphone, Zap, TrendingUp, Star, Repeat, Calendar, Info, Users, Tag, Phone, Mail, X, Save, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
+import { apiClient, ApiError } from "@/lib/api-client"
+import type { ApiCategory } from "@/lib/types"
+
+const MapPicker = dynamic(() => import("@/components/map-picker"), { ssr: false })
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
@@ -40,12 +46,21 @@ interface Recurrence {
 export default function CreateEventPage() {
   const { user } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const editEventId = searchParams.get("edit")
+  const isEditMode = Boolean(editEventId)
+
   const [step, setStep] = useState<Step>(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoadingEvent, setIsLoadingEvent] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<ApiCategory[]>([])
   const [formData, setFormData] = useState({
-    title: "", category: "music",
+    title: "", categoryId: "",
     ageRestriction: "all-ages" as "all-ages" | "18+" | "21+" | "family-friendly",
     tags: [] as string[],
     eventFormat: "", venueName: "", address: "", city: "", country: "Nigeria",
+    latitude: null as number | null, longitude: null as number | null,
     onlineUrl: "", platform: "",
     startDate: "", startTime: "", endDate: "", endTime: "",
     isRecurring: false,
@@ -69,27 +84,184 @@ export default function CreateEventPage() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [tagInput, setTagInput] = useState("")
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [aiMode, setAiMode] = useState<"generate" | "enhance" | null>(null)
 
-  // Load draft from localStorage on mount
-  useEffect(() => {
-    const draft = localStorage.getItem('eventDraft')
-    if (draft) {
-      try {
-        const parsed = JSON.parse(draft)
-        setFormData(parsed)
-      } catch (e) {
-        console.error('Failed to load draft:', e)
+  // Fetch categories on mount
+  const fetchCategories = useCallback(async () => {
+    try {
+      const data = await apiClient<ApiCategory[]>("/api/categories", {
+        skipAuth: true,
+      })
+      setCategories(data)
+      // Set default category if none selected
+      if (!formData.categoryId && data.length > 0) {
+        setFormData(prev => ({ ...prev, categoryId: data[0].id }))
       }
+    } catch (error) {
+      console.error("Failed to fetch categories:", error)
     }
   }, [])
 
-  // Auto-save draft to localStorage
   useEffect(() => {
+    fetchCategories()
+  }, [fetchCategories])
+
+  // Load existing event when in edit mode
+  useEffect(() => {
+    if (!editEventId) {
+      // Load draft from localStorage only for new events
+      const draft = localStorage.getItem('eventDraft')
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft)
+          setFormData(parsed)
+        } catch (e) {
+          console.error('Failed to load draft:', e)
+        }
+      }
+      return
+    }
+
+    // Fetch existing event for editing
+    const fetchEvent = async () => {
+      setIsLoadingEvent(true)
+      try {
+        const event = await apiClient<{
+          id: string
+          title: string
+          description: string
+          shortDescription?: string
+          categoryId?: string
+          ageRestriction?: string
+          tags?: string[]
+          eventFormat: string
+          venueName?: string
+          address?: string
+          city?: string
+          country?: string
+          onlineUrl?: string
+          platform?: string
+          startDate: string
+          startTime?: string
+          endDate?: string
+          endTime?: string
+          isFree: boolean
+          currency?: string
+          capacity?: number
+          refundPolicy?: string
+          contactEmail?: string
+          contactPhone?: string
+          isPrivate?: boolean
+          coverImage?: string
+          ticketTypes?: Array<{
+            id: string
+            name: string
+            type: string
+            price: number
+            quantity: number
+            description?: string
+          }>
+        }>(`/api/events/${editEventId}`)
+
+        // Map API values back to form values
+        const eventFormatMap: Record<string, string> = {
+          IN_PERSON: "venue",
+          ONLINE: "online",
+          HYBRID: "hybrid",
+        }
+        const ageRestrictionMap: Record<string, "all-ages" | "18+" | "21+" | "family-friendly"> = {
+          ALL_AGES: "all-ages",
+          FAMILY_FRIENDLY: "family-friendly",
+          EIGHTEEN_PLUS: "18+",
+          TWENTYONE_PLUS: "21+",
+        }
+        const refundPolicyMap: Record<string, "refundable" | "non-refundable" | "partial"> = {
+          NON_REFUNDABLE: "non-refundable",
+          REFUNDABLE: "refundable",
+          PARTIAL: "partial",
+        }
+        const ticketTypeMap: Record<string, "regular" | "vip" | "custom"> = {
+          REGULAR: "regular",
+          VIP: "vip",
+          EARLY_BIRD: "custom",
+          GROUP: "custom",
+          STUDENT: "custom",
+          MEMBER: "custom",
+        }
+
+        // Convert tickets
+        const tickets: Ticket[] = event.ticketTypes && event.ticketTypes.length > 0
+          ? event.ticketTypes.map(t => ({
+              id: t.id,
+              name: t.name,
+              type: ticketTypeMap[t.type] || "custom",
+              price: t.price.toString(),
+              quantity: t.quantity.toString(),
+              description: t.description || "",
+            }))
+          : [{ id: "1", name: "General Admission", type: "regular" as const, price: "", quantity: "", description: "" }]
+
+        setFormData({
+          title: event.title,
+          categoryId: event.categoryId || "",
+          ageRestriction: ageRestrictionMap[event.ageRestriction || "ALL_AGES"] || "all-ages",
+          tags: event.tags || [],
+          eventFormat: eventFormatMap[event.eventFormat] || "venue",
+          venueName: event.venueName || "",
+          address: event.address || "",
+          city: event.city || "",
+          country: event.country || "Nigeria",
+          onlineUrl: event.onlineUrl || "",
+          platform: event.platform || "",
+          startDate: event.startDate ? new Date(event.startDate).toISOString().split("T")[0] : "",
+          startTime: event.startTime || "",
+          endDate: event.endDate ? new Date(event.endDate).toISOString().split("T")[0] : "",
+          endTime: event.endTime || "",
+          isRecurring: false,
+          recurrence: {
+            frequency: "weekly",
+            interval: 1,
+            daysOfWeek: [],
+            endType: "occurrences",
+            endDate: "",
+            occurrences: 10,
+          },
+          description: event.description || "",
+          image: null,
+          imagePreview: event.coverImage || "",
+          isFree: event.isFree,
+          currency: event.currency || "NGN",
+          tickets,
+          capacity: event.capacity?.toString() || "",
+          refundPolicy: refundPolicyMap[event.refundPolicy || "NON_REFUNDABLE"] || "non-refundable",
+          contactEmail: event.contactEmail || "",
+          contactPhone: event.contactPhone || "",
+          isPrivate: event.isPrivate || false,
+          promoteEvent: false,
+          selectedPromotion: null,
+        })
+      } catch (error) {
+        console.error("Failed to fetch event:", error)
+        setSubmitError("Failed to load event for editing")
+      } finally {
+        setIsLoadingEvent(false)
+      }
+    }
+
+    fetchEvent()
+  }, [editEventId])
+
+  // Auto-save draft to localStorage (only for new events)
+  useEffect(() => {
+    if (editEventId) return // Don't save drafts when editing
     const timer = setTimeout(() => {
       localStorage.setItem('eventDraft', JSON.stringify(formData))
     }, 1000)
     return () => clearTimeout(timer)
-  }, [formData])
+  }, [formData, editEventId])
 
   const clearDraft = () => {
     localStorage.removeItem('eventDraft')
@@ -185,10 +357,10 @@ export default function CreateEventPage() {
     return Object.keys(e).length === 0
   }
 
-  const next = () => { 
+  const next = async () => {
     if (validate(step)) {
       if (step === 6 && !formData.promoteEvent) {
-        handlePublish()
+        await handlePublish()
         return
       }
       if (step < 7) setStep((s) => (s + 1) as Step)
@@ -196,64 +368,128 @@ export default function CreateEventPage() {
   }
 
   const prev = () => { if (step > 1) setStep((s) => (s - 1) as Step) }
-  
-  const handlePublish = () => {
-    // Build the API payload
-    const payload: any = {
-      title: formData.title,
-      category: formData.category,
-      ageRestriction: formData.ageRestriction,
-      tags: formData.tags,
-      eventFormat: formData.eventFormat,
-      venueName: formData.venueName,
-      address: formData.address,
-      city: formData.city,
-      country: formData.country,
-      onlineUrl: formData.onlineUrl,
-      platform: formData.platform,
-      startDate: formData.startDate,
-      startTime: formData.startTime,
-      endDate: formData.endDate,
-      endTime: formData.endTime,
-      description: formData.description,
-      isFree: formData.isFree,
-      currency: formData.currency,
-      tickets: formData.tickets,
-      capacity: formData.capacity,
-      refundPolicy: formData.refundPolicy,
-      contactEmail: formData.contactEmail,
-      contactPhone: formData.contactPhone,
-      isRecurring: formData.isRecurring,
-    }
 
-    // Add recurrence data if recurring
-    if (formData.isRecurring) {
-      payload.recurrence = {
-        frequency: formData.recurrence.frequency,
-        interval: formData.recurrence.interval,
-        daysOfWeek: formData.recurrence.frequency === "weekly" ? formData.recurrence.daysOfWeek : undefined,
-        endDate: formData.recurrence.endType === "date" ? formData.recurrence.endDate : undefined,
-        occurrences: formData.recurrence.endType === "occurrences" ? formData.recurrence.occurrences : undefined
+  const handlePublish = async () => {
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      // Map form values to API enum values
+      const eventFormatMap: Record<string, string> = {
+        venue: "IN_PERSON",
+        online: "ONLINE",
+        hybrid: "HYBRID",
       }
-    }
 
-    console.log("Event created:", payload)
-    clearDraft() // Clear draft after successful publish
-    alert("Event created successfully!")
-    router.push("/my-events")
+      const ageRestrictionMap: Record<string, string> = {
+        "all-ages": "ALL_AGES",
+        "family-friendly": "FAMILY_FRIENDLY",
+        "18+": "EIGHTEEN_PLUS",
+        "21+": "TWENTYONE_PLUS",
+      }
+
+      const refundPolicyMap: Record<string, string> = {
+        "non-refundable": "NON_REFUNDABLE",
+        "refundable": "REFUNDABLE",
+        "partial": "PARTIAL",
+      }
+
+      const ticketTypeMap: Record<string, string> = {
+        regular: "REGULAR",
+        vip: "VIP",
+        custom: "REGULAR",
+      }
+
+      // Build ticket types array for API
+      const ticketTypes = formData.isFree ? undefined : formData.tickets.map(t => ({
+        name: t.name,
+        description: t.description || undefined,
+        type: ticketTypeMap[t.type] || "REGULAR",
+        price: parseFloat(t.price) || 0,
+        quantity: parseInt(t.quantity) || 100,
+      }))
+
+      // Build the API payload
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        shortDescription: formData.description.substring(0, 200),
+        categoryId: formData.categoryId || undefined,
+        ageRestriction: ageRestrictionMap[formData.ageRestriction] || "ALL_AGES",
+        tags: formData.tags,
+        eventFormat: eventFormatMap[formData.eventFormat] || "IN_PERSON",
+        venueName: formData.venueName || undefined,
+        address: formData.address || undefined,
+        city: formData.city || undefined,
+        country: formData.country,
+        latitude: formData.latitude || undefined,
+        longitude: formData.longitude || undefined,
+        onlineUrl: formData.onlineUrl || undefined,
+        platform: formData.platform || undefined,
+        startDate: formData.startDate,
+        startTime: formData.startTime,
+        endDate: formData.endDate || undefined,
+        endTime: formData.endTime || undefined,
+        isFree: formData.isFree,
+        currency: formData.currency,
+        capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
+        refundPolicy: refundPolicyMap[formData.refundPolicy] || "NON_REFUNDABLE",
+        contactEmail: formData.contactEmail || undefined,
+        contactPhone: formData.contactPhone || undefined,
+        isPrivate: formData.isPrivate,
+        coverImage: formData.imagePreview || undefined,
+        ticketTypes,
+      }
+
+      if (editEventId) {
+        // Update existing event
+        await apiClient(`/api/events/${editEventId}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        })
+        router.push("/my-events")
+      } else {
+        // Create new event
+        const createdEvent = await apiClient<{ id: string }>("/api/events", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        })
+
+        // Publish the event immediately after creation
+        try {
+          await apiClient(`/api/events/${createdEvent.id}/publish`, {
+            method: "POST",
+          })
+        } catch (publishError) {
+          console.warn("Event created but not published:", publishError)
+          // Show error to user but still redirect - event was created as draft
+          if (publishError instanceof ApiError) {
+            alert(`Event created as draft. Publishing failed: ${publishError.message}`)
+          }
+        }
+
+        clearDraft()
+        router.push("/my-events")
+      }
+    } catch (error) {
+      console.error("Failed to create event:", error)
+      if (error instanceof ApiError) {
+        setSubmitError(error.message)
+      } else {
+        setSubmitError("Failed to create event. Please try again.")
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!formData.selectedPromotion) {
-      alert("Please select a promotion package")
+      setSubmitError("Please select a promotion package")
       return
     }
-    const promo = promotions.find(p => p.id === formData.selectedPromotion)
-    console.log("Processing payment for:", promo)
-    alert(`Redirecting to checkout for ${promo?.name} - ${formData.currency} ${promo?.price.toLocaleString()}`)
-    setTimeout(() => {
-      handlePublish()
-    }, 1000)
+    // For now, just create the event (promotion checkout to be implemented with payment system)
+    await handlePublish()
   }
 
   const handleChange = (e: any) => {
@@ -281,9 +517,72 @@ export default function CreateEventPage() {
     })
   }
 
-  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) setFormData(p => ({ ...p, image: file, imagePreview: URL.createObjectURL(file) }))
+    if (!file) return
+
+    // Show preview immediately
+    const previewUrl = URL.createObjectURL(file)
+    setFormData(p => ({ ...p, image: file, imagePreview: previewUrl }))
+
+    // Upload to Cloudinary
+    setIsUploading(true)
+    setUploadError(null)
+
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append("file", file)
+      formDataUpload.append("folder", "events")
+
+      const result = await apiClient<{ url: string; publicId: string }>("/api/upload", {
+        method: "POST",
+        body: formDataUpload,
+      })
+
+      // Update with Cloudinary URL
+      setFormData(p => ({ ...p, imagePreview: result.url }))
+    } catch (error) {
+      console.error("Failed to upload image:", error)
+      if (error instanceof ApiError) {
+        setUploadError(error.message)
+      } else {
+        setUploadError("Failed to upload image. Please try again.")
+      }
+      // Revert to no image on error
+      setFormData(p => ({ ...p, image: null, imagePreview: "" }))
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleAIDescription = async (mode: "generate" | "enhance") => {
+    setIsGeneratingAI(true)
+    setAiMode(mode)
+    try {
+      const categoryName = categories.find(c => c.id === formData.categoryId)?.name
+      const result = await apiClient<{ description: string }>("/api/ai/generate-description", {
+        method: "POST",
+        body: JSON.stringify({
+          title: formData.title,
+          category: categoryName,
+          eventFormat: formData.eventFormat,
+          existingDescription: mode === "enhance" ? formData.description : undefined,
+          mode,
+        }),
+      })
+      setFormData(prev => ({ ...prev, description: result.description }))
+      toast.success(mode === "generate" ? "Description generated!" : "Description enhanced!")
+    } catch (error) {
+      console.error("AI generation failed:", error)
+      if (error instanceof ApiError) {
+        toast.error(error.message)
+      } else {
+        toast.error("Failed to generate description. Please try again.")
+      }
+    } finally {
+      setIsGeneratingAI(false)
+      setAiMode(null)
+    }
   }
 
   const addTicket = () => {
@@ -311,7 +610,7 @@ export default function CreateEventPage() {
               vip: "VIP Pass",
               custom: ""
             }
-            return { ...t, [field]: value, name: names[value] || t.name }
+            return { ...t, type: value as "regular" | "vip" | "custom", name: names[value] || t.name }
           }
           return { ...t, [field]: value }
         }
@@ -372,6 +671,22 @@ export default function CreateEventPage() {
 
   if (!user) return null
 
+  // Show loading state when fetching event for editing
+  if (isLoadingEvent) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="animate-spin text-primary mx-auto mb-4" size={48} />
+            <p className="text-muted-foreground">Loading event...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -379,21 +694,23 @@ export default function CreateEventPage() {
         <div className="bg-card border-b px-4 py-4">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-4">
-              <Link href="/"><button className="flex items-center gap-2 text-primary hover:text-primary/80"><ArrowLeft size={20} />Back</button></Link>
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.setItem('eventDraft', JSON.stringify(formData))
-                  alert('Draft saved successfully!')
-                }}
-                className="flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors"
-              >
-                <Save size={18} />
-                Save Draft
-              </button>
+              <Link href={isEditMode ? "/my-events" : "/"}><button className="flex items-center gap-2 text-primary hover:text-primary/80"><ArrowLeft size={20} />Back</button></Link>
+              {!isEditMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('eventDraft', JSON.stringify(formData))
+                    alert('Draft saved successfully!')
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors"
+                >
+                  <Save size={18} />
+                  Save Draft
+                </button>
+              )}
             </div>
-            <h1 className="text-3xl font-bold">Create Event</h1>
-            <p className="text-muted-foreground">Step {step} of {formData.promoteEvent ? "7" : "6"} • Auto-saving...</p>
+            <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : "Create Event"}</h1>
+            <p className="text-muted-foreground">Step {step} of {formData.promoteEvent ? "7" : "6"}{!isEditMode && " • Auto-saving..."}</p>
           </div>
         </div>
         <div className="h-2 bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${(step / (formData.promoteEvent ? 7 : 6)) * 100}%` }} /></div>
@@ -410,9 +727,14 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Category *</label>
-                  <select name="category" value={formData.category} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-background">
-                    <option value="music">Music</option><option value="business">Business</option><option value="food">Food & Drink</option>
-                    <option value="arts">Arts</option><option value="sports">Sports</option><option value="tech">Technology</option><option value="education">Education</option><option value="religious">Religious</option>
+                  <select name="categoryId" value={formData.categoryId} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg bg-background">
+                    {categories.length === 0 ? (
+                      <option value="">Loading categories...</option>
+                    ) : (
+                      categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))
+                    )}
                   </select>
                 </div>
 
@@ -487,6 +809,24 @@ export default function CreateEventPage() {
                       <select name="country" value={formData.country} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg">
                         <option value="Nigeria">Nigeria</option><option value="Ghana">Ghana</option><option value="Kenya">Kenya</option>
                       </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Pin Location on Map</label>
+                      <p className="text-xs text-muted-foreground mb-3">Click on the map to pin your venue, or type the address above to auto-locate.</p>
+                      <MapPicker
+                        latitude={formData.latitude || undefined}
+                        longitude={formData.longitude || undefined}
+                        address={formData.address}
+                        onLocationChange={(lat, lng, address, city, country) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            latitude: lat,
+                            longitude: lng,
+                            ...(address && !prev.address ? { address } : {}),
+                            ...(city && !prev.city ? { city } : {}),
+                          }))
+                        }}
+                      />
                     </div>
                   </>
                 )}
@@ -696,15 +1036,69 @@ export default function CreateEventPage() {
             {step === 4 && (
               <div className="space-y-6">
                 <div><h2 className="text-2xl font-bold mb-2">Description & Media</h2><p className="text-muted-foreground">Tell attendees about your event</p></div>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                  <input type="file" accept="image/*" onChange={handleImage} className="hidden" id="img" />
-                  <label htmlFor="img" className="cursor-pointer">
-                    {formData.imagePreview ? <img src={formData.imagePreview} alt="Preview" className="max-h-64 mx-auto rounded-lg" /> : <><Upload className="mx-auto mb-2 text-muted-foreground" size={32} /><p className="font-semibold">Upload Image</p><p className="text-sm text-muted-foreground">PNG, JPG up to 10MB</p></>}
+                <div className="border-2 border-dashed rounded-lg p-8 text-center relative">
+                  <input type="file" accept="image/*" onChange={handleImage} className="hidden" id="img" disabled={isUploading} />
+                  <label htmlFor="img" className={`cursor-pointer ${isUploading ? "pointer-events-none opacity-70" : ""}`}>
+                    {isUploading ? (
+                      <div className="flex flex-col items-center">
+                        <Loader2 className="animate-spin text-primary mb-2" size={32} />
+                        <p className="font-semibold">Uploading image...</p>
+                        <p className="text-sm text-muted-foreground">Please wait</p>
+                      </div>
+                    ) : formData.imagePreview ? (
+                      <div className="relative">
+                        <img src={formData.imagePreview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+                        <p className="text-sm text-muted-foreground mt-2">Click to change image</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="mx-auto mb-2 text-muted-foreground" size={32} />
+                        <p className="font-semibold">Upload Image</p>
+                        <p className="text-sm text-muted-foreground">PNG, JPG, WebP, GIF up to 10MB</p>
+                      </>
+                    )}
                   </label>
                 </div>
+                {uploadError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {uploadError}
+                  </div>
+                )}
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Description * (min 50 chars)</label>
-                  <textarea name="description" value={formData.description} onChange={handleChange} rows={10} placeholder="What should attendees expect?" className="w-full px-4 py-3 border rounded-lg resize-none" />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-semibold">Description * (min 50 chars)</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAIDescription("generate")}
+                        disabled={isGeneratingAI || !formData.title}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        {isGeneratingAI && aiMode === "generate" ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Zap size={14} />
+                        )}
+                        Generate with AI
+                      </button>
+                      {formData.description.length >= 20 && (
+                        <button
+                          type="button"
+                          onClick={() => handleAIDescription("enhance")}
+                          disabled={isGeneratingAI}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          {isGeneratingAI && aiMode === "enhance" ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Zap size={14} />
+                          )}
+                          Enhance with AI
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <textarea name="description" value={formData.description} onChange={handleChange} rows={10} placeholder="What should attendees expect? You can also use AI to generate or enhance your description." className="w-full px-4 py-3 border rounded-lg resize-none" />
                   <p className="text-xs text-muted-foreground mt-1">{formData.description.length} characters</p>
                 </div>
               </div>
@@ -940,16 +1334,46 @@ export default function CreateEventPage() {
               </div>
             )}
 
+            {submitError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-6">
+                {submitError}
+              </div>
+            )}
+
             <div className="flex gap-4 mt-8">
-              {step > 1 && <button onClick={prev} className="flex-1 py-3 border rounded-lg font-semibold hover:bg-muted flex items-center justify-center gap-2"><ArrowLeft size={20} />Back</button>}
-              
+              {step > 1 && <button onClick={prev} disabled={isSubmitting} className="flex-1 py-3 border rounded-lg font-semibold hover:bg-muted flex items-center justify-center gap-2 disabled:opacity-50"><ArrowLeft size={20} />Back</button>}
+
               {step < 6 && <button onClick={next} className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 flex items-center justify-center gap-2">Continue <ArrowRight size={20} /></button>}
-              
-              {step === 6 && !formData.promoteEvent && <button onClick={next} className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 flex items-center justify-center gap-2"><Check size={20} />Publish Event</button>}
-              
+
+              {step === 6 && !formData.promoteEvent && (
+                <button
+                  onClick={next}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <><Loader2 size={20} className="animate-spin" />{isEditMode ? "Updating..." : "Creating Event..."}</>
+                  ) : (
+                    <><Check size={20} />{isEditMode ? "Update Event" : "Publish Event"}</>
+                  )}
+                </button>
+              )}
+
               {step === 6 && formData.promoteEvent && <button onClick={next} className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 flex items-center justify-center gap-2">Continue to Promotion <ArrowRight size={20} /></button>}
-              
-              {step === 7 && <button onClick={handleCheckout} disabled={!formData.selectedPromotion} className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"><Check size={20} />Proceed to Checkout</button>}
+
+              {step === 7 && (
+                <button
+                  onClick={handleCheckout}
+                  disabled={!formData.selectedPromotion || isSubmitting}
+                  className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <><Loader2 size={20} className="animate-spin" />Creating Event...</>
+                  ) : (
+                    <><Check size={20} />Proceed to Checkout</>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </section>

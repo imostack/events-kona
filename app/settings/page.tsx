@@ -1,18 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Bell, 
-  CreditCard, 
-  Globe, 
-  Shield, 
+import {
+  User,
+  Lock,
+  Bell,
+  CreditCard,
+  Shield,
   Trash2,
   ArrowLeft,
   Camera,
@@ -22,7 +20,6 @@ import {
   AlertCircle,
   Smartphone,
   Heart,
-  MapPin,
   ExternalLink,
   Loader2,
   Eye,
@@ -31,6 +28,7 @@ import {
   Check
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { apiClient, ApiError } from "@/lib/api-client"
 
 type SettingsTab = "account" | "organizer" | "password" | "notifications" | "payout" | "preferences" | "privacy"
 
@@ -41,15 +39,18 @@ interface Bank {
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<SettingsTab>("account")
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveMessage, setSaveMessage] = useState("")
+  const [saveError, setSaveError] = useState("")
   const [isVerifyingAccount, setIsVerifyingAccount] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
+  const [isDataLoading, setIsDataLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Nigerian Banks (would come from API in production)
   const nigerianBanks: Bank[] = [
@@ -99,35 +100,121 @@ export default function SettingsPage() {
     { id: "10", name: "M-Pesa", code: "MPESA" },
   ]
 
-  useEffect(() => {
-    if (!user) {
-      router.push("/login")
-    }
-  }, [user, router])
-
   // Account Settings State
   const [accountData, setAccountData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+234 801 234 5678",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
     profileImage: null as File | null,
     profileImageUrl: "",
   })
 
   // Organizer Profile State
   const [organizerData, setOrganizerData] = useState({
-    isOrganizer: true,
-    organizerName: "Tech Events Lagos",
-    organizerSlug: "tech-events-lagos",
-    bio: "Bringing the best tech conferences and meetups to Lagos and beyond.",
+    isOrganizer: false,
+    organizerName: "",
+    organizerSlug: "",
+    bio: "",
     logo: null as File | null,
     logoUrl: "",
-    website: "https://techeventslagos.com",
-    twitter: "techeventslag",
-    instagram: "techeventslag",
+    website: "",
+    twitter: "",
+    instagram: "",
     linkedin: "",
   })
+  // Track if user was originally an organizer (from DB) vs just setting up locally
+  const [wasOriginallyOrganizer, setWasOriginallyOrganizer] = useState(false)
+
+  // Load user data from API
+  const loadUserData = useCallback(async () => {
+    try {
+      setIsDataLoading(true)
+      const data = await apiClient<{
+        id: string
+        email: string
+        firstName: string
+        lastName: string
+        phone: string | null
+        bio: string | null
+        avatarUrl: string | null
+        role: string
+        preferences: Record<string, unknown> | null
+        notificationSettings: Record<string, unknown> | null
+        organizerName: string | null
+        organizerSlug: string | null
+        organizerBio: string | null
+        organizerWebsite: string | null
+      }>("/api/auth/onboarding")
+
+      // Populate account data
+      setAccountData(prev => ({
+        ...prev,
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        profileImageUrl: data.avatarUrl || "",
+      }))
+
+      // Populate organizer data
+      const isOrg = data.role === "ORGANIZER" || data.role === "ADMIN"
+      setWasOriginallyOrganizer(isOrg)
+      setOrganizerData(prev => ({
+        ...prev,
+        isOrganizer: isOrg,
+        organizerName: data.organizerName || "",
+        organizerSlug: data.organizerSlug || "",
+        bio: data.organizerBio || "",
+        website: data.organizerWebsite || "",
+      }))
+
+      // Populate preferences from stored preferences JSON
+      if (data.preferences) {
+        const prefs = data.preferences as Record<string, unknown>
+        setPreferences(prev => ({
+          ...prev,
+          preferredCategories: (prefs.preferredCategories as string[]) || prev.preferredCategories,
+          preferredLocation: (prefs.preferredLocation as string) || prev.preferredLocation,
+          preferredCountry: (prefs.preferredCountry as string) || prev.preferredCountry,
+          showFreeEventsFirst: (prefs.showFreeEventsFirst as boolean) || prev.showFreeEventsFirst,
+          defaultCurrency: (prefs.defaultCurrency as string) || prev.defaultCurrency,
+        }))
+      }
+
+      // Populate notification settings
+      if (data.notificationSettings) {
+        const notifs = data.notificationSettings as Record<string, unknown>
+        setNotifications(prev => ({
+          ...prev,
+          emailUpdates: notifs.emailUpdates as boolean ?? prev.emailUpdates,
+          eventReminders: notifs.eventReminders as boolean ?? prev.eventReminders,
+          promotions: notifs.promotions as boolean ?? prev.promotions,
+          newsletter: notifs.newsletter as boolean ?? prev.newsletter,
+          sms: notifs.sms as boolean ?? prev.sms,
+          organizerFollows: notifs.organizerFollows as boolean ?? prev.organizerFollows,
+          ticketSales: notifs.ticketSales as boolean ?? prev.ticketSales,
+          payoutAlerts: notifs.payoutAlerts as boolean ?? prev.payoutAlerts,
+        }))
+      }
+    } catch (error) {
+      console.error("Failed to load user data:", error)
+    } finally {
+      setIsDataLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (user) {
+      loadUserData()
+    }
+  }, [user, loadUserData])
 
   // Password State
   const [passwordData, setPasswordData] = useState({
@@ -136,12 +223,12 @@ export default function SettingsPage() {
     confirmPassword: "",
   })
 
-  // Notification Settings State
+  // Notification Settings State (defaults, overwritten by loadUserData)
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
     eventReminders: true,
     promotions: false,
-    newsletter: true,
+    newsletter: false,
     sms: false,
     organizerFollows: true,
     ticketSales: true,
@@ -160,10 +247,10 @@ export default function SettingsPage() {
     verificationStatus: "unverified" as "unverified" | "verifying" | "verified" | "failed",
   })
 
-  // Event Preferences State
+  // Event Preferences State (defaults, overwritten by loadUserData)
   const [preferences, setPreferences] = useState({
-    preferredCategories: ["tech", "music"] as string[],
-    preferredLocation: "Lagos",
+    preferredCategories: [] as string[],
+    preferredLocation: "",
     preferredCountry: "Nigeria",
     showFreeEventsFirst: false,
     defaultCurrency: "NGN",
@@ -218,10 +305,149 @@ export default function SettingsPage() {
     }
   }
 
-  const handleSave = (message: string = "Settings saved successfully!") => {
+  const showSuccess = (message: string = "Settings saved successfully!") => {
+    setSaveError("")
     setSaveMessage(message)
     setSaveSuccess(true)
     setTimeout(() => setSaveSuccess(false), 3000)
+  }
+
+  const showError = (message: string) => {
+    setSaveSuccess(false)
+    setSaveError(message)
+    setTimeout(() => setSaveError(""), 5000)
+  }
+
+  // Save Account Info
+  const handleSaveAccount = async () => {
+    setIsSaving(true)
+    try {
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({
+          firstName: accountData.firstName,
+          lastName: accountData.lastName,
+          phone: accountData.phone,
+        }),
+      })
+      showSuccess("Account information saved!")
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to save account info")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Save Organizer Profile
+  const handleSaveOrganizer = async () => {
+    if (!organizerData.organizerName.trim()) {
+      showError("Organization name is required")
+      return
+    }
+    setIsSaving(true)
+    try {
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({
+          // Only send becomeOrganizer if user wasn't originally an organizer
+          becomeOrganizer: !wasOriginallyOrganizer ? true : undefined,
+          organizerName: organizerData.organizerName,
+          organizerBio: organizerData.bio || undefined,
+          organizerWebsite: organizerData.website || undefined,
+        }),
+      })
+      showSuccess("Organizer profile saved!")
+      await loadUserData() // Refresh to get updated role/slug
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to save organizer profile")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Change Password
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      showError("New passwords do not match")
+      return
+    }
+    if (passwordData.newPassword.length < 8) {
+      showError("Password must be at least 8 characters")
+      return
+    }
+    setIsSaving(true)
+    try {
+      await apiClient("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      })
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      showSuccess("Password changed successfully!")
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to change password")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Save Notification Settings
+  const handleSaveNotifications = async () => {
+    setIsSaving(true)
+    try {
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({
+          notificationSettings: notifications,
+        }),
+      })
+      showSuccess("Notification preferences saved!")
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to save notification preferences")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Save Event Preferences
+  const handleSavePreferences = async () => {
+    setIsSaving(true)
+    try {
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({
+          preferences: preferences,
+        }),
+      })
+      showSuccess("Event preferences saved!")
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to save event preferences")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Save Privacy Settings (stored in preferences for now)
+  const handleSavePrivacy = async () => {
+    setIsSaving(true)
+    try {
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({
+          preferences: {
+            ...preferences,
+            privacy: privacyData,
+          },
+        }),
+      })
+      showSuccess("Privacy settings saved!")
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to save privacy settings")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: "profile" | "logo") => {
@@ -369,6 +595,20 @@ export default function SettingsPage() {
                     </div>
                   )}
 
+                  {saveError && (
+                    <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+                      <AlertCircle size={20} />
+                      {saveError}
+                    </div>
+                  )}
+
+                  {isDataLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="animate-spin text-primary" size={32} />
+                      <span className="ml-3 text-muted-foreground">Loading your settings...</span>
+                    </div>
+                  ) : (
+                    <>
                   {/* Account Info Tab */}
                   {activeTab === "account" && (
                     <div className="space-y-6">
@@ -462,11 +702,12 @@ export default function SettingsPage() {
                       </div>
 
                       <button
-                        onClick={() => handleSave()}
-                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                        onClick={handleSaveAccount}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                       >
-                        <Save size={20} />
-                        Save Changes
+                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {isSaving ? "Saving..." : "Save Changes"}
                       </button>
                     </div>
                   )}
@@ -641,11 +882,12 @@ export default function SettingsPage() {
                           )}
 
                           <button
-                            onClick={() => handleSave("Organizer profile saved!")}
-                            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                            onClick={handleSaveOrganizer}
+                            disabled={isSaving}
+                            className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                           >
-                            <Save size={20} />
-                            Save Organizer Profile
+                            {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                            {isSaving ? "Saving..." : "Save Organizer Profile"}
                           </button>
                         </>
                       )}
@@ -710,11 +952,12 @@ export default function SettingsPage() {
                       </div>
 
                       <button
-                        onClick={() => handleSave("Password updated successfully!")}
-                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                        onClick={handleChangePassword}
+                        disabled={isSaving || !passwordData.currentPassword || !passwordData.newPassword}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                       >
-                        <Save size={20} />
-                        Update Password
+                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {isSaving ? "Updating..." : "Update Password"}
                       </button>
                     </div>
                   )}
@@ -802,11 +1045,12 @@ export default function SettingsPage() {
                       </div>
 
                       <button
-                        onClick={() => handleSave("Notification preferences saved!")}
-                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                        onClick={handleSaveNotifications}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                       >
-                        <Save size={20} />
-                        Save Preferences
+                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {isSaving ? "Saving..." : "Save Preferences"}
                       </button>
                     </div>
                   )}
@@ -1021,11 +1265,12 @@ export default function SettingsPage() {
                       </div>
 
                       <button
-                        onClick={() => handleSave("Event preferences saved!")}
-                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                        onClick={handleSavePreferences}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                       >
-                        <Save size={20} />
-                        Save Preferences
+                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {isSaving ? "Saving..." : "Save Preferences"}
                       </button>
                     </div>
                   )}
@@ -1174,11 +1419,12 @@ export default function SettingsPage() {
                       </div>
 
                       <button
-                        onClick={() => handleSave("Privacy settings saved!")}
-                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                        onClick={handleSavePrivacy}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                       >
-                        <Save size={20} />
-                        Save Privacy Settings
+                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {isSaving ? "Saving..." : "Save Privacy Settings"}
                       </button>
 
                       {/* Danger Zone */}
@@ -1200,6 +1446,8 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     </div>
+                  )}
+                    </>
                   )}
                 </div>
               </div>

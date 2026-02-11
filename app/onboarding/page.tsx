@@ -1,13 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Calendar, ArrowRight, ArrowLeft, Check, Users, MapPin, Search } from "lucide-react"
+import { Calendar, ArrowRight, ArrowLeft, Check } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { apiClient } from "@/lib/api-client"
 
 type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6
 
 export default function OnboardingPage() {
+  const router = useRouter()
+  const { user, isLoading } = useAuth()
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, isLoading, router])
+
   const [step, setStep] = useState<OnboardingStep>(1)
   const [formData, setFormData] = useState({
     role: "",
@@ -31,23 +41,26 @@ export default function OnboardingPage() {
   }
 
   const handleComplete = async () => {
-  try {
-    if (process.env.NEXT_PUBLIC_DEV_BYPASS === "true") {
+    try {
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({
+          preferences: {
+            role: formData.role,
+            eventTypes: formData.eventTypes,
+            eventFrequency: formData.eventFrequency,
+            attendeeCount: formData.attendeeCount,
+            primaryGoal: formData.primaryGoal,
+            experience: formData.experience,
+          },
+        }),
+      })
       router.replace("/")
-      return
+      router.refresh()
+    } catch (error) {
+      console.error("Failed to complete onboarding", error)
     }
-
-    await fetch("/api/onboarding/complete", {
-      method: "POST",
-      credentials: "include",
-    })
-
-    router.replace("/")
-    router.refresh()
-  } catch (error) {
-    console.error("Failed to complete onboarding", error)
   }
-}
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">

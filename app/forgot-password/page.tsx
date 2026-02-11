@@ -6,8 +6,10 @@ import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Mail } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function ForgotPasswordPage() {
+  const { forgotPassword } = useAuth()
   const [email, setEmail] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -26,18 +28,20 @@ export default function ForgotPasswordPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (validateForm()) {
       setIsLoading(true)
-
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false)
+      try {
+        await forgotPassword(email)
         setSuccess(true)
         setEmail("")
-      }, 1500)
+      } catch {
+        setErrors({ submit: "Failed to send reset link. Please try again." })
+      } finally {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -51,14 +55,21 @@ export default function ForgotPasswordPage() {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-2">Forgot Password</h1>
             <p className="text-muted-foreground">
-              Enter your email and we’ll send you a reset link
+              Enter your email and we&apos;ll send you a reset link
             </p>
           </div>
 
           {/* Success Message */}
           {success && (
             <div className="bg-primary/20 border border-primary text-primary px-4 py-3 rounded-lg mb-6 text-center">
-              ✓ Password reset link sent. Check your email.
+              Password reset link sent. Check your email.
+            </div>
+          )}
+
+          {/* Error Message */}
+          {errors.submit && (
+            <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg mb-6 text-sm">
+              {errors.submit}
             </div>
           )}
 

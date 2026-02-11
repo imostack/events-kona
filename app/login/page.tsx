@@ -3,14 +3,17 @@
 import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { ApiError } from "@/lib/api-client"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirect")
   const { login } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -44,10 +47,17 @@ export default function LoginPage() {
       setIsLoading(true)
       try {
         await login(email, password)
-        router.push("/")
+        router.push(redirectTo || "/")
       } catch (error) {
-        console.error("[v0] Login error:", error)
-        setErrors({ submit: "Invalid email or password. Please try again." })
+        if (error instanceof ApiError) {
+          if (error.code === "ACCOUNT_SUSPENDED") {
+            setErrors({ submit: "Your account has been suspended. Please contact support." })
+          } else {
+            setErrors({ submit: error.message })
+          }
+        } else {
+          setErrors({ submit: "An unexpected error occurred. Please try again." })
+        }
       } finally {
         setIsLoading(false)
       }
@@ -126,7 +136,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="w-4 h-4 rounded border-border" />
                 <span className="text-sm text-foreground">Remember me</span>
               </label>
-              <Link href="#" className="text-sm text-primary hover:text-primary/80">
+              <Link href="/forgot-password" className="text-sm text-primary hover:text-primary/80">
                 Forgot password?
               </Link>
             </div>
