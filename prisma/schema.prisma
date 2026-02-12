@@ -196,9 +196,11 @@ enum LogLevel {
 model User {
   id                 String     @id @default(cuid())
   email              String     @unique
-  passwordHash       String
+  passwordHash       String?
   firstName          String?
   lastName           String?
+  authProvider       String?    // "google", "credentials", etc.
+  authProviderId     String?    // Google sub ID
   phone              String?    @unique
   avatarUrl          String?
   bio                String?

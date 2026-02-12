@@ -43,6 +43,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, password: string, firstName: string, lastName: string) => Promise<void>
+  googleLogin: (credential: string) => Promise<void>
   logout: () => Promise<void>
   updateUser: (userData: Partial<User>) => void
   forgotPassword: (email: string) => Promise<string>
@@ -175,6 +176,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     scheduleRefresh()
   }
 
+  const googleLogin = async (googleAccessToken: string) => {
+    const data = await apiClient<LoginResponse>("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ accessToken: googleAccessToken }),
+      skipAuth: true,
+    })
+
+    setTokens(data.accessToken, data.refreshToken)
+    setUser(mapApiUser(data.user as unknown as Record<string, unknown>))
+    scheduleRefresh()
+  }
+
   const logout = async () => {
     try {
       await apiClient("/api/auth/logout", { method: "POST" })
@@ -218,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         login,
         signup,
+        googleLogin,
         logout,
         updateUser,
         forgotPassword,

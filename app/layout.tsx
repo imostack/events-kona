@@ -4,7 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google"
 import Script from "next/script"
 
 import "./globals.css";
-import { AuthProvider } from "@/lib/auth-context"
+import Providers from "@/components/providers"
 import CookieConsent from "@/components/cookie-consent"
 import { generateMetadata as generateSEOMetadata, organizationStructuredData, websiteStructuredData } from "@/lib/seo-config"
 
@@ -43,10 +43,10 @@ export default function RootLayout({
             __html: JSON.stringify(websiteStructuredData),
           }}
         />
-        <AuthProvider>
+        <Providers>
           {children}
           <CookieConsent />
-        </AuthProvider>
+        </Providers>
       </body>
     </html>
   )

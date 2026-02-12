@@ -49,6 +49,15 @@ async function handler(request: NextRequest) {
     });
   }
 
+  // Check if this is an OAuth-only account (no password set)
+  if (!user.passwordHash) {
+    return errorResponse({
+      message: "This account uses Google sign-in. Please sign in with Google.",
+      status: 401,
+      code: "OAUTH_ACCOUNT",
+    });
+  }
+
   // Verify password
   const validPassword = await verifyPassword(password, user.passwordHash);
   if (!validPassword) {
