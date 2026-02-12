@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useState } from "react"
-import { Menu, X, Calendar, LogOut, Settings, PlusCircle, User } from "lucide-react"
+import { Menu, X, Calendar, LogOut, Settings, PlusCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function Navbar() {
@@ -55,9 +56,13 @@ export default function Navbar() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors font-semibold"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                    {user?.name?.charAt(0).toUpperCase() || "U"}
-                  </div>
+                  {user?.avatarUrl ? (
+                    <Image src={user.avatarUrl} alt={user.name || "User"} width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                      {user?.name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
                   <span>{user?.name || "User"}</span>
                 </button>
 
@@ -125,9 +130,13 @@ export default function Navbar() {
             {isAuthenticated && user && (
               <div className="px-4 py-3 bg-muted rounded-lg mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
-                    {user.name?.charAt(0).toUpperCase() || "U"}
-                  </div>
+                  {user.avatarUrl ? (
+                    <Image src={user.avatarUrl} alt={user.name || "User"} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
+                      {user.name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-semibold text-foreground">{user.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>

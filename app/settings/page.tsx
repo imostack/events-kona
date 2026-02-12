@@ -429,6 +429,30 @@ export default function SettingsPage() {
     }
   }
 
+  // Save Payout Settings
+  const handleSavePayout = async () => {
+    setIsSaving(true)
+    try {
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({
+          payoutAccount: {
+            bankName: payoutData.bankName,
+            bankCode: payoutData.bankCode,
+            accountNumber: payoutData.accountNumber,
+            accountName: payoutData.accountName,
+            currency: payoutData.currency,
+          },
+        }),
+      })
+      showSuccess("Payout settings saved!")
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to save payout settings")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // Save Privacy Settings (stored in preferences for now)
   const handleSavePrivacy = async () => {
     setIsSaving(true)
@@ -465,21 +489,31 @@ export default function SettingsPage() {
     if (!payoutData.accountNumber || !payoutData.bankCode) {
       return
     }
-    
+
     setIsVerifyingAccount(true)
     setPayoutData(prev => ({ ...prev, verificationStatus: "verifying" }))
-    
-    // Simulate Paystack account verification API call
-    setTimeout(() => {
-      // Simulated success response
-      setPayoutData(prev => ({ 
-        ...prev, 
-        accountName: "JOHN DOE",
+
+    try {
+      const data = await apiClient<{ accountName: string; accountNumber: string }>(
+        `/api/bank/verify?account_number=${payoutData.accountNumber}&bank_code=${payoutData.bankCode}`
+      )
+      setPayoutData(prev => ({
+        ...prev,
+        accountName: data.accountName,
         isVerified: true,
         verificationStatus: "verified"
       }))
+    } catch (error) {
+      setPayoutData(prev => ({
+        ...prev,
+        accountName: "",
+        isVerified: false,
+        verificationStatus: "failed"
+      }))
+      showError(error instanceof ApiError ? error.message : "Account verification failed. Please check your details.")
+    } finally {
       setIsVerifyingAccount(false)
-    }, 2000)
+    }
   }
 
   const handleCountryChange = (country: string) => {
@@ -528,7 +562,7 @@ export default function SettingsPage() {
     if (twoFactorSetup.verificationCode.length === 6) {
       setPrivacyData(prev => ({ ...prev, twoFactorEnabled: true }))
       setTwoFactorSetup(prev => ({ ...prev, isSettingUp: false, verificationCode: "" }))
-      handleSave("Two-factor authentication enabled!")
+      showSuccess("Two-factor authentication enabled!")
     }
   }
 
@@ -1066,7 +1100,7 @@ export default function SettingsPage() {
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
                         <CreditCard size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm text-blue-900">Payouts are processed via <strong>Paystack</strong> within 24-48 hours after your event ends. A 5% platform fee is deducted from ticket sales.</p>
+                          <p className="text-sm text-blue-900">Payouts are processed via <strong>Paystack</strong> within 24-48 hours. A 1.5% platform fee is deducted from ticket sales.</p>
                         </div>
                       </div>
 
@@ -1171,12 +1205,12 @@ export default function SettingsPage() {
                       )}
 
                       <button
-                        onClick={() => handleSave("Payout settings saved!")}
-                        disabled={!payoutData.isVerified}
+                        onClick={handleSavePayout}
+                        disabled={!payoutData.isVerified || isSaving}
                         className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Save size={20} />
-                        Save Payout Settings
+                        {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                        {isSaving ? "Saving..." : "Save Payout Settings"}
                       </button>
                     </div>
                   )}
