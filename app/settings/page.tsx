@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
@@ -41,7 +41,9 @@ interface Bank {
 export default function SettingsPage() {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<SettingsTab>("account")
+  const searchParams = useSearchParams()
+  const initialTab = (searchParams.get("tab") as SettingsTab) || "account"
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveMessage, setSaveMessage] = useState("")
   const [saveError, setSaveError] = useState("")
@@ -177,9 +179,37 @@ export default function SettingsPage() {
           preferredCategories: (prefs.preferredCategories as string[]) || prev.preferredCategories,
           preferredLocation: (prefs.preferredLocation as string) || prev.preferredLocation,
           preferredCountry: (prefs.preferredCountry as string) || prev.preferredCountry,
-          showFreeEventsFirst: (prefs.showFreeEventsFirst as boolean) || prev.showFreeEventsFirst,
+          showFreeEventsFirst: (prefs.showFreeEventsFirst as boolean) ?? prev.showFreeEventsFirst,
           defaultCurrency: (prefs.defaultCurrency as string) || prev.defaultCurrency,
         }))
+
+        // Load payout account from preferences
+        if (prefs.payoutAccount) {
+          const payout = prefs.payoutAccount as Record<string, unknown>
+          setPayoutData(prev => ({
+            ...prev,
+            bankName: (payout.bankName as string) || "",
+            bankCode: (payout.bankCode as string) || "",
+            accountNumber: (payout.accountNumber as string) || "",
+            accountName: (payout.accountName as string) || "",
+            currency: (payout.currency as string) || prev.currency,
+            isVerified: !!(payout.accountName),
+            verificationStatus: payout.accountName ? "verified" : "unverified",
+          }))
+        }
+
+        // Load privacy settings from preferences
+        if (prefs.privacy) {
+          const privacy = prefs.privacy as Record<string, unknown>
+          setPrivacyData(prev => ({
+            ...prev,
+            profileVisibility: (privacy.profileVisibility as string) || prev.profileVisibility,
+            showEmail: (privacy.showEmail as boolean) ?? prev.showEmail,
+            showPhone: (privacy.showPhone as boolean) ?? prev.showPhone,
+            dataSharing: (privacy.dataSharing as boolean) ?? prev.dataSharing,
+            twoFactorEnabled: (privacy.twoFactorEnabled as boolean) ?? prev.twoFactorEnabled,
+          }))
+        }
       }
 
       // Populate notification settings

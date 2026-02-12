@@ -13,6 +13,7 @@ import { apiClient, ApiError } from "@/lib/api-client"
 import type { ApiCategory } from "@/lib/types"
 
 const MapPicker = dynamic(() => import("@/components/map-picker"), { ssr: false })
+const VenueAutocomplete = dynamic(() => import("@/components/venue-autocomplete"), { ssr: false })
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
@@ -492,9 +493,20 @@ export default function CreateEventPage() {
     await handlePublish()
   }
 
+  const countryCurrencyMap: Record<string, string> = {
+    Nigeria: "NGN",
+    Ghana: "GHS",
+    Kenya: "KES",
+  }
+
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target
-    setFormData(p => ({ ...p, [name]: type === "checkbox" ? checked : value }))
+    if (name === "country") {
+      // Auto-set currency when country changes
+      setFormData(p => ({ ...p, country: value, currency: countryCurrencyMap[value] || "NGN" }))
+    } else {
+      setFormData(p => ({ ...p, [name]: type === "checkbox" ? checked : value }))
+    }
   }
 
   const handleRecurrenceChange = (field: keyof Recurrence, value: any) => {
@@ -671,6 +683,41 @@ export default function CreateEventPage() {
 
   if (!user) return null
 
+  const isOrganizer = user.role === "ORGANIZER" || user.role === "ADMIN"
+
+  // Show organizer setup prompt for non-organizer users
+  if (!isOrganizer) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center px-4">
+          <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 text-center shadow-sm">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Calendar size={32} className="text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-3">Set Up Your Organizer Profile</h1>
+            <p className="text-muted-foreground mb-6">
+              To create and manage events on EventsKona, you need to set up your organizer profile first. It only takes a minute!
+            </p>
+            <div className="space-y-3">
+              <Link href="/settings?tab=organizer">
+                <button className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-colors">
+                  Set Up Organizer Profile
+                </button>
+              </Link>
+              <Link href="/">
+                <button className="w-full py-3 border border-border rounded-xl font-semibold text-muted-foreground hover:bg-muted transition-colors">
+                  Back to Home
+                </button>
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
   // Show loading state when fetching event for editing
   if (isLoadingEvent) {
     return (
@@ -802,7 +849,28 @@ export default function CreateEventPage() {
                 </div>
                 {(formData.eventFormat === "venue" || formData.eventFormat === "hybrid") && (
                   <>
-                    <input type="text" name="venueName" value={formData.venueName} onChange={handleChange} placeholder="Venue Name" className="w-full px-4 py-3 border rounded-lg bg-background" />
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Venue Name</label>
+                      <VenueAutocomplete
+                        value={formData.venueName}
+                        onChange={(val) => setFormData(prev => ({ ...prev, venueName: val }))}
+                        onSelect={(venue) => {
+                          const selectedCountry = venue.country || formData.country
+                          setFormData(prev => ({
+                            ...prev,
+                            venueName: venue.name,
+                            address: venue.address,
+                            city: venue.city,
+                            country: selectedCountry,
+                            currency: countryCurrencyMap[selectedCountry] || prev.currency,
+                            latitude: venue.latitude,
+                            longitude: venue.longitude,
+                          }))
+                        }}
+                        country={formData.country}
+                        placeholder="Search venue name or address..."
+                      />
+                    </div>
                     <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Street Address *" className="w-full px-4 py-3 border rounded-lg bg-background" />
                     <div className="grid grid-cols-2 gap-4">
                       <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="City" className="w-full px-4 py-3 border rounded-lg" />
@@ -817,13 +885,13 @@ export default function CreateEventPage() {
                         latitude={formData.latitude || undefined}
                         longitude={formData.longitude || undefined}
                         address={formData.address}
-                        onLocationChange={(lat, lng, address, city, country) => {
+                        onLocationChange={(lat, lng, address, city) => {
                           setFormData(prev => ({
                             ...prev,
                             latitude: lat,
                             longitude: lng,
-                            ...(address && !prev.address ? { address } : {}),
-                            ...(city && !prev.city ? { city } : {}),
+                            ...(address ? { address } : {}),
+                            ...(city ? { city } : {}),
                           }))
                         }}
                       />
@@ -1132,9 +1200,15 @@ export default function CreateEventPage() {
                 </label>
                 {!formData.isFree && (
                   <>
-                    <select name="currency" value={formData.currency} onChange={handleChange} className="w-full px-4 py-3 border rounded-lg">
-                      <option value="NGN">Nigerian Naira (₦)</option><option value="GHS">Ghanaian Cedi (₵)</option><option value="KES">Kenyan Shilling (KSh)</option>
-                    </select>
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Currency</label>
+                      <div className="w-full px-4 py-3 border rounded-lg bg-muted text-muted-foreground cursor-not-allowed">
+                        {formData.currency === "NGN" && "Nigerian Naira (₦)"}
+                        {formData.currency === "GHS" && "Ghanaian Cedi (₵)"}
+                        {formData.currency === "KES" && "Kenyan Shilling (KSh)"}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Currency is set based on your event location ({formData.country})</p>
+                    </div>
 
                     {/* Refund Policy */}
                     <div>

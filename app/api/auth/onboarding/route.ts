@@ -13,6 +13,7 @@ const onboardingSchema = z.object({
   bio: z.string().trim().optional(),
   preferences: z.record(z.unknown()).optional(),
   notificationSettings: z.record(z.unknown()).optional(),
+  payoutAccount: z.record(z.unknown()).optional(),
   // Organizer fields (only if becoming organizer)
   becomeOrganizer: z.boolean().optional(),
   organizerName: z.string().min(2).trim().optional(),
@@ -64,14 +65,25 @@ async function postHandler(request: NextRequest & { user: TokenPayload }) {
   if (data.lastName) updateData.lastName = data.lastName;
   if (data.phone) updateData.phone = data.phone;
   if (data.bio !== undefined) updateData.bio = data.bio;
-  if (data.preferences) updateData.preferences = data.preferences;
-  if (data.notificationSettings) updateData.notificationSettings = data.notificationSettings;
-
-  // Get current user to check if already organizer
+  // Get current user (for preference merging + organizer check)
   const currentUser = await prisma.user.findUnique({
     where: { id: request.user.sub },
-    select: { role: true, organizerSlug: true },
+    select: { role: true, organizerSlug: true, preferences: true },
   });
+
+  // Merge preferences with existing ones instead of replacing
+  if (data.preferences || data.payoutAccount) {
+    const existingPrefs = (currentUser?.preferences as Record<string, unknown>) || {};
+
+    if (data.preferences) {
+      updateData.preferences = { ...existingPrefs, ...data.preferences };
+    }
+    if (data.payoutAccount) {
+      const mergedPrefs = (updateData.preferences as Record<string, unknown>) || existingPrefs;
+      updateData.preferences = { ...mergedPrefs, payoutAccount: data.payoutAccount };
+    }
+  }
+  if (data.notificationSettings) updateData.notificationSettings = data.notificationSettings;
 
   const isAlreadyOrganizer = currentUser?.role === "ORGANIZER" || currentUser?.role === "ADMIN";
 

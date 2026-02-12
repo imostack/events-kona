@@ -60,6 +60,8 @@ export default function Home() {
   const [locationFilter, setLocationFilter] = useState("")
   const [cityFilter, setCityFilter] = useState("")
   const [countryFilter, setCountryFilter] = useState("")
+  const [prefsLoaded, setPrefsLoaded] = useState(false)
+  const [showFreeFirst, setShowFreeFirst] = useState(false)
   const resultsRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
 
@@ -68,6 +70,42 @@ export default function Home() {
   const [featuredEvents, setFeaturedEvents] = useState<ApiEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [totalEvents, setTotalEvents] = useState(0)
+
+  // Load user preferences to set default filters
+  useEffect(() => {
+    if (!user) {
+      setPrefsLoaded(true)
+      return
+    }
+
+    async function loadPreferences() {
+      try {
+        const data = await apiClient<{ preferences: Record<string, unknown> | null }>("/api/auth/onboarding")
+        if (data.preferences) {
+          const prefs = data.preferences
+          if (prefs.preferredCountry && !countryFilter) {
+            setCountryFilter(prefs.preferredCountry as string)
+          }
+          if (prefs.preferredLocation && !cityFilter) {
+            setCityFilter(prefs.preferredLocation as string)
+          }
+          if (prefs.preferredCategories && (prefs.preferredCategories as string[]).length > 0 && filterType === "all") {
+            // Set first preferred category as default filter
+            setFilterType((prefs.preferredCategories as string[])[0])
+          }
+          if (prefs.showFreeEventsFirst) {
+            setShowFreeFirst(true)
+          }
+        }
+      } catch {
+        // Silently fail - preferences are not critical
+      } finally {
+        setPrefsLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-rotate hero background images
   useEffect(() => {
@@ -78,8 +116,10 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch events from API
+  // Fetch events from API (waits for preferences to load first)
   useEffect(() => {
+    if (!prefsLoaded) return
+
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000)
 
@@ -132,7 +172,7 @@ export default function Home() {
       controller.abort()
       clearTimeout(timeoutId)
     }
-  }, [searchQuery, locationFilter, cityFilter, countryFilter])
+  }, [searchQuery, locationFilter, cityFilter, countryFilter, prefsLoaded])
 
   // Fetch featured events
   useEffect(() => {
@@ -165,6 +205,13 @@ export default function Home() {
     if (filterType === "all") return true
     return event.category?.slug === filterType ||
            event.category?.name?.toLowerCase() === filterType.toLowerCase()
+  }).sort((a, b) => {
+    // If user prefers free events first, sort them to the top
+    if (showFreeFirst) {
+      if (a.isFree && !b.isFree) return -1
+      if (!a.isFree && b.isFree) return 1
+    }
+    return 0
   })
 
   // Use first 3 events as featured if no featured events returned
