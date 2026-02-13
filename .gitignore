@@ -16,6 +16,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# lockfiles (project uses npm)
+pnpm-lock.yaml
+yarn.lock
+
 # env files
 .env
 .env.local
