@@ -299,6 +299,11 @@ async function getHandler(request: NextRequest) {
           organizerVerified: true,
         },
       },
+      _count: {
+        select: {
+          registrations: true,
+        },
+      },
     },
     orderBy: { [sortBy]: sortOrder },
     skip: (page - 1) * limit,

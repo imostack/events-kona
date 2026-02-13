@@ -39,7 +39,7 @@ interface Bank {
 }
 
 export default function SettingsPage() {
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading, logout } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = (searchParams.get("tab") as SettingsTab) || "account"
@@ -146,7 +146,9 @@ export default function SettingsPage() {
         organizerName: string | null
         organizerSlug: string | null
         organizerBio: string | null
+        organizerLogo: string | null
         organizerWebsite: string | null
+        organizerSocials: Record<string, string> | null
       }>("/api/auth/onboarding")
 
       // Populate account data
@@ -162,13 +164,18 @@ export default function SettingsPage() {
       // Populate organizer data
       const isOrg = data.role === "ORGANIZER" || data.role === "ADMIN"
       setWasOriginallyOrganizer(isOrg)
+      const socials = (data.organizerSocials as Record<string, string>) || {}
       setOrganizerData(prev => ({
         ...prev,
         isOrganizer: isOrg,
         organizerName: data.organizerName || "",
         organizerSlug: data.organizerSlug || "",
         bio: data.organizerBio || "",
+        logoUrl: data.organizerLogo || "",
         website: data.organizerWebsite || "",
+        twitter: socials.twitter || "",
+        instagram: socials.instagram || "",
+        linkedin: socials.linkedin || "",
       }))
 
       // Populate preferences from stored preferences JSON
@@ -304,6 +311,33 @@ export default function SettingsPage() {
     verificationCode: "",
   })
 
+  // Delete Account State
+  const [deleteModal, setDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState("")
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== "DELETE MY ACCOUNT") return
+    setIsDeleting(true)
+    try {
+      await apiClient("/api/auth/account", {
+        method: "DELETE",
+        body: JSON.stringify({
+          password: deletePassword,
+          confirmation: deleteConfirmation,
+        }),
+      })
+      // Logout and redirect
+      logout()
+      router.push("/login")
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to delete account")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const eventCategories = [
     { id: "music", label: "Music" },
     { id: "tech", label: "Technology" },
@@ -384,6 +418,11 @@ export default function SettingsPage() {
           organizerName: organizerData.organizerName,
           organizerBio: organizerData.bio || undefined,
           organizerWebsite: organizerData.website || undefined,
+          organizerSocials: {
+            twitter: organizerData.twitter || "",
+            instagram: organizerData.instagram || "",
+            linkedin: organizerData.linkedin || "",
+          },
         }),
       })
       showSuccess("Organizer profile saved!")
@@ -504,14 +543,54 @@ export default function SettingsPage() {
     }
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: "profile" | "logo") => {
+  const [isUploading, setIsUploading] = useState<"profile" | "logo" | null>(null)
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "profile" | "logo") => {
     const file = e.target.files?.[0]
-    if (file) {
+    if (!file) return
+
+    // Show preview immediately
+    if (type === "profile") {
+      setAccountData(prev => ({ ...prev, profileImage: file }))
+    } else {
+      setOrganizerData(prev => ({ ...prev, logo: file }))
+    }
+
+    // Upload to Cloudinary
+    setIsUploading(type)
+    try {
+      const uploadForm = new FormData()
+      uploadForm.append("file", file)
+      uploadForm.append("folder", type === "profile" ? "avatars" : "organizers")
+      const result = await apiClient<{ url: string }>("/api/upload", {
+        method: "POST",
+        body: uploadForm,
+      })
+
+      // Save URL to backend
       if (type === "profile") {
-        setAccountData(prev => ({ ...prev, profileImage: file }))
+        await apiClient("/api/auth/onboarding", {
+          method: "POST",
+          body: JSON.stringify({ avatarUrl: result.url }),
+        })
+        setAccountData(prev => ({ ...prev, profileImageUrl: result.url, profileImage: null }))
       } else {
-        setOrganizerData(prev => ({ ...prev, logo: file }))
+        await apiClient("/api/auth/onboarding", {
+          method: "POST",
+          body: JSON.stringify({ organizerLogo: result.url }),
+        })
+        setOrganizerData(prev => ({ ...prev, logoUrl: result.url, logo: null }))
       }
+      showSuccess(`${type === "profile" ? "Profile photo" : "Organization logo"} uploaded!`)
+    } catch (error) {
+      showError(error instanceof ApiError ? error.message : "Failed to upload image")
+      if (type === "profile") {
+        setAccountData(prev => ({ ...prev, profileImage: null }))
+      } else {
+        setOrganizerData(prev => ({ ...prev, logo: null }))
+      }
+    } finally {
+      setIsUploading(null)
     }
   }
 
@@ -685,31 +764,37 @@ export default function SettingsPage() {
                         <div className="relative">
                           <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                             {accountData.profileImage ? (
-                              <img 
-                                src={URL.createObjectURL(accountData.profileImage)} 
-                                alt="Profile" 
+                              <img
+                                src={URL.createObjectURL(accountData.profileImage)}
+                                alt="Profile"
                                 className="w-full h-full object-cover"
                               />
                             ) : accountData.profileImageUrl ? (
-                              <img 
-                                src={accountData.profileImageUrl} 
-                                alt="Profile" 
+                              <img
+                                src={accountData.profileImageUrl}
+                                alt="Profile"
                                 className="w-full h-full object-cover"
                               />
                             ) : (
                               <User size={40} className="text-muted-foreground" />
                             )}
+                            {isUploading === "profile" && (
+                              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                                <Loader2 size={24} className="animate-spin text-white" />
+                              </div>
+                            )}
                           </div>
-                          <label 
-                            htmlFor="profile-image" 
-                            className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-2 rounded-full cursor-pointer hover:bg-primary/90"
+                          <label
+                            htmlFor="profile-image"
+                            className={`absolute bottom-0 right-0 bg-primary text-primary-foreground p-2 rounded-full hover:bg-primary/90 ${isUploading === "profile" ? "opacity-50 cursor-wait" : "cursor-pointer"}`}
                           >
-                            <Camera size={16} />
+                            {isUploading === "profile" ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                             <input
                               type="file"
                               id="profile-image"
                               accept="image/*"
                               onChange={(e) => handleImageChange(e, "profile")}
+                              disabled={isUploading === "profile"}
                               className="hidden"
                             />
                           </label>
@@ -803,31 +888,37 @@ export default function SettingsPage() {
                             <div className="relative">
                               <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center overflow-hidden border-2 border-border">
                                 {organizerData.logo ? (
-                                  <img 
-                                    src={URL.createObjectURL(organizerData.logo)} 
-                                    alt="Logo" 
+                                  <img
+                                    src={URL.createObjectURL(organizerData.logo)}
+                                    alt="Logo"
                                     className="w-full h-full object-cover"
                                   />
                                 ) : organizerData.logoUrl ? (
-                                  <img 
-                                    src={organizerData.logoUrl} 
-                                    alt="Logo" 
+                                  <img
+                                    src={organizerData.logoUrl}
+                                    alt="Logo"
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
                                   <Building2 size={40} className="text-muted-foreground" />
                                 )}
+                                {isUploading === "logo" && (
+                                  <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                                    <Loader2 size={24} className="animate-spin text-white" />
+                                  </div>
+                                )}
                               </div>
-                              <label 
-                                htmlFor="org-logo" 
-                                className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-2 rounded-full cursor-pointer hover:bg-primary/90"
+                              <label
+                                htmlFor="org-logo"
+                                className={`absolute bottom-0 right-0 bg-primary text-primary-foreground p-2 rounded-full hover:bg-primary/90 ${isUploading === "logo" ? "opacity-50 cursor-wait" : "cursor-pointer"}`}
                               >
-                                <Camera size={16} />
+                                {isUploading === "logo" ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                                 <input
                                   type="file"
                                   id="org-logo"
                                   accept="image/*"
                                   onChange={(e) => handleImageChange(e, "logo")}
+                                  disabled={isUploading === "logo"}
                                   className="hidden"
                                 />
                               </label>
@@ -1502,7 +1593,10 @@ export default function SettingsPage() {
                                 Permanently delete your account and all associated data. This action cannot be undone.
                               </p>
                             </div>
-                            <button className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors ml-4 flex-shrink-0">
+                            <button
+                              onClick={() => setDeleteModal(true)}
+                              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors ml-4 flex-shrink-0"
+                            >
                               <Trash2 size={16} />
                               Delete Account
                             </button>
@@ -1519,6 +1613,65 @@ export default function SettingsPage() {
           </div>
         </section>
       </main>
+
+      {/* Delete Account Confirmation Modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-red-600 mb-2">Delete Your Account</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              This will permanently delete your account, events, tickets, and all associated data. This action cannot be undone.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">Enter your password</label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Your password"
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Type <span className="font-mono text-red-600">DELETE MY ACCOUNT</span> to confirm
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  placeholder="DELETE MY ACCOUNT"
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-red-500 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setDeleteModal(false)
+                  setDeletePassword("")
+                  setDeleteConfirmation("")
+                }}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground font-semibold hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmation !== "DELETE MY ACCOUNT" || !deletePassword || isDeleting}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={16} />}
+                {isDeleting ? "Deleting..." : "Delete Forever"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

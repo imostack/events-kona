@@ -82,13 +82,39 @@ export default function ProfilePage() {
     }))
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploading, setIsUploading] = useState(false)
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        profileImage: file,
-      }))
+    if (!file) return
+
+    // Show preview immediately
+    setFormData((prev) => ({ ...prev, profileImage: file }))
+
+    // Upload to Cloudinary
+    setIsUploading(true)
+    try {
+      const uploadForm = new FormData()
+      uploadForm.append("file", file)
+      uploadForm.append("folder", "avatars")
+      const result = await apiClient<{ url: string }>("/api/upload", {
+        method: "POST",
+        body: uploadForm,
+      })
+      // Save avatar URL to backend
+      await apiClient("/api/auth/onboarding", {
+        method: "POST",
+        body: JSON.stringify({ avatarUrl: result.url }),
+      })
+      setFormData((prev) => ({ ...prev, profileImageUrl: result.url, profileImage: null }))
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
+    } catch (error) {
+      setSaveError(error instanceof ApiError ? error.message : "Failed to upload image")
+      setTimeout(() => setSaveError(""), 5000)
+      setFormData((prev) => ({ ...prev, profileImage: null }))
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -175,7 +201,7 @@ export default function ProfilePage() {
                 <div className="bg-card border border-border rounded-lg p-6">
                   <h2 className="text-xl font-bold text-foreground mb-4">Profile Picture</h2>
                   <div className="flex items-center gap-6">
-                    <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center text-primary text-3xl font-bold overflow-hidden">
+                    <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center text-primary text-3xl font-bold overflow-hidden relative">
                       {formData.profileImage ? (
                         <img
                           src={URL.createObjectURL(formData.profileImage)}
@@ -191,21 +217,27 @@ export default function ProfilePage() {
                       ) : (
                         <User size={40} />
                       )}
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                          <Loader2 size={24} className="animate-spin text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1">
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleFileChange}
+                        disabled={isUploading}
                         className="hidden"
                         id="profile-image-upload"
                       />
                       <label
                         htmlFor="profile-image-upload"
-                        className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
+                        className={`inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold hover:bg-primary/90 transition-colors ${isUploading ? "opacity-50 cursor-wait" : "cursor-pointer"}`}
                       >
-                        <Upload size={18} />
-                        Upload Photo
+                        {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                        {isUploading ? "Uploading..." : "Upload Photo"}
                       </label>
                       <p className="text-sm text-muted-foreground mt-2">JPG, PNG or GIF. Max 5MB.</p>
                     </div>

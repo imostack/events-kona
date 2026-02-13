@@ -70,6 +70,7 @@ export default function Home() {
   const [featuredEvents, setFeaturedEvents] = useState<ApiEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [totalEvents, setTotalEvents] = useState(0)
+  const [platformStats, setPlatformStats] = useState({ events: 0, organizers: 0, attendees: 0 })
 
   // Load user preferences to set default filters
   useEffect(() => {
@@ -106,6 +107,13 @@ export default function Home() {
 
     loadPreferences()
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load platform stats
+  useEffect(() => {
+    apiClient<{ events: number; organizers: number; attendees: number }>("/api/stats", { skipAuth: true })
+      .then(setPlatformStats)
+      .catch(() => {})
+  }, [])
 
   // Auto-rotate hero background images
   useEffect(() => {
@@ -325,21 +333,21 @@ export default function Home() {
                 <div className="flex items-center justify-center gap-2 text-primary mb-2">
                   <Calendar size={24} />
                 </div>
-                <div className="text-3xl font-bold text-foreground">{totalEvents || events.length}+</div>
+                <div className="text-3xl font-bold text-foreground">{platformStats.events || totalEvents || events.length}</div>
                 <div className="text-sm text-muted-foreground">Active Events</div>
               </div>
               <div>
                 <div className="flex items-center justify-center gap-2 text-primary mb-2">
                   <Users size={24} />
                 </div>
-                <div className="text-3xl font-bold text-foreground">5K+</div>
+                <div className="text-3xl font-bold text-foreground">{platformStats.attendees > 0 ? platformStats.attendees.toLocaleString() : "0"}</div>
                 <div className="text-sm text-muted-foreground">Total Attendees</div>
               </div>
               <div>
                 <div className="flex items-center justify-center gap-2 text-primary mb-2">
                   <TrendingUp size={24} />
                 </div>
-                <div className="text-3xl font-bold text-foreground">1.2K+</div>
+                <div className="text-3xl font-bold text-foreground">{platformStats.organizers > 0 ? platformStats.organizers.toLocaleString() : "0"}</div>
                 <div className="text-sm text-muted-foreground">Organizers</div>
               </div>
               <div>

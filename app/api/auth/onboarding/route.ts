@@ -11,6 +11,7 @@ const onboardingSchema = z.object({
   lastName: z.string().min(1).trim().optional(),
   phone: z.string().trim().optional(),
   bio: z.string().trim().optional(),
+  avatarUrl: z.string().url().optional().or(z.literal("")),
   preferences: z.record(z.unknown()).optional(),
   notificationSettings: z.record(z.unknown()).optional(),
   payoutAccount: z.record(z.unknown()).optional(),
@@ -19,6 +20,12 @@ const onboardingSchema = z.object({
   organizerName: z.string().min(2).trim().optional(),
   organizerBio: z.string().trim().optional(),
   organizerWebsite: z.string().url().optional().or(z.literal("")),
+  organizerLogo: z.string().url().optional().or(z.literal("")),
+  organizerSocials: z.object({
+    twitter: z.string().optional(),
+    instagram: z.string().optional(),
+    linkedin: z.string().optional(),
+  }).optional(),
 });
 
 // GET: Return current user's onboarding data
@@ -39,7 +46,9 @@ async function getHandler(request: NextRequest & { user: TokenPayload }) {
       organizerName: true,
       organizerSlug: true,
       organizerBio: true,
+      organizerLogo: true,
       organizerWebsite: true,
+      organizerSocials: true,
       emailVerified: true,
     },
   });
@@ -65,6 +74,7 @@ async function postHandler(request: NextRequest & { user: TokenPayload }) {
   if (data.lastName) updateData.lastName = data.lastName;
   if (data.phone) updateData.phone = data.phone;
   if (data.bio !== undefined) updateData.bio = data.bio;
+  if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl || null;
   // Get current user (for preference merging + organizer check)
   const currentUser = await prisma.user.findUnique({
     where: { id: request.user.sub },
@@ -121,6 +131,8 @@ async function postHandler(request: NextRequest & { user: TokenPayload }) {
   if (data.organizerName !== undefined) updateData.organizerName = data.organizerName;
   if (data.organizerBio !== undefined) updateData.organizerBio = data.organizerBio;
   if (data.organizerWebsite !== undefined) updateData.organizerWebsite = data.organizerWebsite;
+  if (data.organizerLogo !== undefined) updateData.organizerLogo = data.organizerLogo || null;
+  if (data.organizerSocials !== undefined) updateData.organizerSocials = data.organizerSocials;
 
   const user = await prisma.user.update({
     where: { id: request.user.sub },

@@ -5,27 +5,27 @@
 ### 1.1 Profile/Organizer image upload never sent to API
 - **Files:** `app/profile/page.tsx`, `app/settings/page.tsx` (Account + Organizer tabs)
 - **Issue:** File selected in input but POST body doesn't include image. Need to upload via `POST /api/upload` first, then save the returned URL.
-- **Status:** NOT STARTED
+- **Status:** DONE - Uploads to Cloudinary via `/api/upload`, saves URL via onboarding API. Spinner overlay during upload.
 
 ### 1.2 Organizer social links not saved
 - **Files:** `app/settings/page.tsx` (Organizer tab), `app/api/auth/onboarding/route.ts`
 - **Issue:** twitter/instagram/linkedin fields collected in UI but not in Zod schema or DB update. Need to store in preferences or add fields to User model.
-- **Status:** NOT STARTED
+- **Status:** DONE - Added `organizerSocials` to Zod schema + DB update. Social links now save/load via `organizerSocials` JSON field.
 
 ### 1.3 Homepage stats are hardcoded
 - **File:** `app/page.tsx` (stats banner section)
 - **Issue:** "5K+ Attendees", "1.2K+ Organizers" are static text. Need a `GET /api/stats` endpoint or compute from existing data.
-- **Status:** NOT STARTED
+- **Status:** DONE - Created `GET /api/stats` endpoint. Homepage fetches real counts (events, organizers, registrations).
 
 ### 1.4 Event card shows likesCount as "attendees"
 - **Files:** `components/event-card.tsx`, `lib/types.ts` (apiEventToLegacy)
 - **Issue:** The `attendees` prop is populated from `likesCount`. Should use `ticketsSold` or `_count.registrations`.
-- **Status:** NOT STARTED
+- **Status:** DONE - Changed to `_count.registrations ?? ticketsSold`. Added `_count.registrations` to events list API.
 
 ### 1.5 Delete Account — no confirmation or API call
 - **File:** `app/settings/page.tsx` (Privacy tab, Danger Zone)
 - **Issue:** Button exists but does nothing. Need confirmation modal + `DELETE /api/auth/account` endpoint.
-- **Status:** NOT STARTED
+- **Status:** DONE - Created `DELETE /api/auth/account` (password + "DELETE MY ACCOUNT" confirmation). Modal in Settings. Soft-deletes user, wipes PII.
 
 ### 1.6 2FA is UI-only
 - **File:** `app/settings/page.tsx` (Privacy tab)

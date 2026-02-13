@@ -204,7 +204,7 @@ export function apiEventToLegacy(event: ApiEvent) {
     country: event.country,
     category: event.category?.slug || "other",
     image: event.coverImage || "/placeholder.svg",
-    attendees: event.likesCount || 0,
+    attendees: event._count?.registrations ?? event.ticketsSold ?? 0,
     organizer: event.organizer?.organizerName || "Unknown Organizer",
     promoted: event.isFeatured,
   }

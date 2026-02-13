@@ -7,6 +7,9 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL environment variable is not set!");
+  }
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
