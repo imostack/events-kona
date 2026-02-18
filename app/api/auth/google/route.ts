@@ -16,6 +16,11 @@ interface GoogleUserInfo {
 }
 
 async function handler(request: NextRequest) {
+  if (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
+    console.error("[auth/google] Missing JWT_SECRET or REFRESH_TOKEN_SECRET in environment");
+    return errorResponse({ message: "Internal server error", status: 500 });
+  }
+
   let body: { accessToken?: string };
   try {
     body = await request.json();

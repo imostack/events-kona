@@ -11,6 +11,8 @@ export function middleware(request: NextRequest) {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-XSS-Protection", "1; mode=block");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  // Allow same-origin popups so NextAuth OAuth (e.g. Google) can use window checks
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   response.headers.set(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(self)"

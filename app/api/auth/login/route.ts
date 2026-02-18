@@ -17,6 +17,11 @@ const loginSchema = z.object({
 });
 
 async function handler(request: NextRequest) {
+  if (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
+    console.error("[auth/login] Missing JWT_SECRET or REFRESH_TOKEN_SECRET in environment");
+    return errorResponse({ message: "Internal server error", status: 500 });
+  }
+
   const validation = await validateBody(request, loginSchema);
   if (!validation.success) return validation.response;
 
