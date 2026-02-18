@@ -7,15 +7,24 @@ import { errorResponse } from "@/lib/api-response";
 // Next.js App Router: increase body size limit for file uploads
 export const dynamic = "force-dynamic";
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 export const POST = withAuth(async (request: NextRequest & { user: TokenPayload }) => {
   try {
+    // Verify Cloudinary is configured
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return errorResponse({
+        message: "Image upload service is not configured. Missing Cloudinary credentials.",
+        status: 503,
+        code: "UPLOAD_NOT_CONFIGURED",
+      });
+    }
+
+    // Configure Cloudinary per-request (ensures env vars are read at runtime)
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
     // Get the form data
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -38,7 +47,7 @@ export const POST = withAuth(async (request: NextRequest & { user: TokenPayload 
     }
 
     // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
         { success: false, error: { message: "File too large. Maximum size is 10MB.", code: "FILE_TOO_LARGE" } },
@@ -46,35 +55,20 @@ export const POST = withAuth(async (request: NextRequest & { user: TokenPayload 
       );
     }
 
-    // Convert file to buffer
+    // Convert file to base64 data URI (more reliable on serverless than upload_stream)
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const base64 = Buffer.from(bytes).toString("base64");
+    const dataUri = `data:${file.type};base64,${base64}`;
 
-    // Upload to Cloudinary
-    const result = await new Promise<{ secure_url: string; public_id: string; width: number; height: number }>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: `eventskona/${folder}`,
-          resource_type: "image",
-          transformation: [
-            { width: 1920, height: 1080, crop: "limit" }, // Limit max dimensions
-            { quality: "auto:good" }, // Auto optimize quality
-            { fetch_format: "auto" }, // Auto format (WebP when supported)
-          ],
-        },
-        (error, result) => {
-          if (error || !result) {
-            reject(error || new Error("Upload failed"));
-          } else {
-            resolve({
-              secure_url: result.secure_url,
-              public_id: result.public_id,
-              width: result.width,
-              height: result.height,
-            });
-          }
-        }
-      ).end(buffer);
+    // Upload to Cloudinary using base64
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder: `eventskona/${folder}`,
+      resource_type: "image",
+      transformation: [
+        { width: 1920, height: 1080, crop: "limit" },
+        { quality: "auto:good" },
+        { fetch_format: "auto" },
+      ],
     });
 
     return NextResponse.json({
@@ -86,9 +80,16 @@ export const POST = withAuth(async (request: NextRequest & { user: TokenPayload 
         height: result.height,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Upload error:", error);
-    const errMsg = error instanceof Error ? error.message : "Unknown error";
+    let errMsg = "Unknown error";
+    if (error instanceof Error) {
+      errMsg = error.message;
+    } else if (error && typeof error === "object" && "message" in error) {
+      errMsg = String((error as { message: unknown }).message);
+    } else if (typeof error === "string") {
+      errMsg = error;
+    }
     return errorResponse({
       message: `Failed to upload image: ${errMsg}`,
       status: 500,
@@ -100,6 +101,12 @@ export const POST = withAuth(async (request: NextRequest & { user: TokenPayload 
 // Delete an image from Cloudinary
 export const DELETE = withAuth(async (request: NextRequest & { user: TokenPayload }) => {
   try {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
     const { searchParams } = new URL(request.url);
     const publicId = searchParams.get("publicId");
 
@@ -110,7 +117,6 @@ export const DELETE = withAuth(async (request: NextRequest & { user: TokenPayloa
       );
     }
 
-    // Verify the public ID belongs to our folder
     if (!publicId.startsWith("eventskona/")) {
       return NextResponse.json(
         { success: false, error: { message: "Invalid public ID", code: "INVALID_PUBLIC_ID" } },
