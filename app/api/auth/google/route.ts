@@ -53,66 +53,86 @@ async function handler(request: NextRequest) {
 
   const { email, given_name, family_name, picture, sub: googleId } = googleUser;
 
-  // Check if user already exists
-  let user = await prisma.user.findUnique({ where: { email } });
+  let user: Awaited<ReturnType<typeof prisma.user.findUnique>>;
+  try {
+    // Check if user already exists
+    user = await prisma.user.findUnique({ where: { email } });
 
-  if (user) {
-    // Existing user — check if suspended
-    if (user.status === "SUSPENDED") {
-      return errorResponse({
-        message: "Your account has been suspended. Please contact support.",
-        status: 403,
-        code: "ACCOUNT_SUSPENDED",
-      });
-    }
+    if (user) {
+      // Existing user — check if suspended
+      if (user.status === "SUSPENDED") {
+        return errorResponse({
+          message: "Your account has been suspended. Please contact support.",
+          status: 403,
+          code: "ACCOUNT_SUSPENDED",
+        });
+      }
 
-    if (user.status === "DELETED") {
-      return errorResponse({
-        message: "This account is no longer available.",
-        status: 401,
-      });
-    }
+      if (user.status === "DELETED") {
+        return errorResponse({
+          message: "This account is no longer available.",
+          status: 401,
+        });
+      }
 
-    // Link Google provider if not already linked
-    if (!user.authProvider) {
-      await prisma.user.update({
-        where: { id: user.id },
+      // Link Google provider if not already linked
+      if (!user.authProvider) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            authProvider: "google",
+            authProviderId: googleId,
+            avatarUrl: user.avatarUrl || picture || null,
+            emailVerified: true,
+          },
+        });
+      }
+    } else {
+      // Create new user via Google
+      user = await prisma.user.create({
         data: {
+          email,
+          firstName: given_name || null,
+          lastName: family_name || null,
+          avatarUrl: picture || null,
           authProvider: "google",
           authProviderId: googleId,
-          avatarUrl: user.avatarUrl || picture || null,
           emailVerified: true,
         },
       });
     }
-  } else {
-    // Create new user via Google
-    user = await prisma.user.create({
-      data: {
-        email,
-        firstName: given_name || null,
-        lastName: family_name || null,
-        avatarUrl: picture || null,
-        authProvider: "google",
-        authProviderId: googleId,
-        emailVerified: true,
-      },
-    });
+  } catch (dbError) {
+    const err = dbError instanceof Error ? dbError : new Error(String(dbError));
+    console.error("[auth/google] Database error:", err.message, err);
+    throw new Error(`Google auth (DB): ${err.message}`);
   }
 
   // Generate tokens
-  const tokenPayload = { sub: user.id, email: user.email, role: user.role };
-  const accessToken = generateAccessToken(tokenPayload);
-  const refreshToken = generateRefreshToken(tokenPayload);
+  let accessToken: string;
+  let refreshToken: string;
+  try {
+    const tokenPayload = { sub: user.id, email: user.email, role: user.role };
+    accessToken = generateAccessToken(tokenPayload);
+    refreshToken = generateRefreshToken(tokenPayload);
+  } catch (tokenError) {
+    const err = tokenError instanceof Error ? tokenError : new Error(String(tokenError));
+    console.error("[auth/google] Token generation error:", err.message, err);
+    throw new Error(`Google auth (tokens): ${err.message}`);
+  }
 
-  // Save refresh token and update last login
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      refreshToken,
-      lastLoginAt: new Date(),
-    },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        refreshToken,
+        lastLoginAt: new Date(),
+      },
+    });
+  } catch (updateError) {
+    const err = updateError instanceof Error ? updateError : new Error(String(updateError));
+    console.error("[auth/google] Update refresh token error:", err.message, err);
+    throw new Error(`Google auth (update): ${err.message}`);
+  }
 
   return successResponse({
     data: {

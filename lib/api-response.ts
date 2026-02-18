@@ -47,12 +47,15 @@ export function errorResponse({
   code,
   details,
 }: ErrorResponseOptions) {
+  const includeDetails =
+    process.env.NODE_ENV === "development" ||
+    process.env.EXPOSE_SERVER_ERRORS === "1";
   const body: Record<string, unknown> = {
     success: false,
     error: {
       message,
       ...(code && { code }),
-      ...(process.env.NODE_ENV === "development" && details && { details }),
+      ...(includeDetails && details !== undefined && { details: String(details) }),
     },
   };
 
