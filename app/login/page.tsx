@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import Navbar from "@/components/navbar"
@@ -9,19 +9,53 @@ import Footer from "@/components/footer"
 import { Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { ApiError } from "@/lib/api-client"
-import { useGoogleLogin } from "@react-oauth/google"
+import { signIn, useSession, signOut } from "next-auth/react"
 
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get("redirect")
   const { login, googleLogin } = useAuth()
+  const { data: session, status } = useSession()
   const [googleLoading, setGoogleLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const bridgingRef = useRef(false)
+
+  // Bridge NextAuth session into custom auth system
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.accessToken || bridgingRef.current) return
+    bridgingRef.current = true
+    setGoogleLoading(true)
+
+    const bridge = async () => {
+      try {
+        await googleLogin(session.accessToken as string)
+        // Clear the NextAuth session — we only needed the Google token
+        await signOut({ redirect: false })
+        router.push(redirectTo || "/")
+      } catch (error) {
+        await signOut({ redirect: false })
+        if (error instanceof ApiError) {
+          if (error.code === "ACCOUNT_SUSPENDED") {
+            setErrors({ submit: "Your account has been suspended. Please contact support." })
+          } else {
+            setErrors({ submit: error.message })
+          }
+        } else {
+          setErrors({ submit: "Google sign-in failed. Please try again." })
+        }
+      } finally {
+        setGoogleLoading(false)
+        bridgingRef.current = false
+      }
+    }
+
+    bridge()
+  }, [status, session, googleLogin, redirectTo, router])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -66,30 +100,10 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setGoogleLoading(true)
-      try {
-        await googleLogin(tokenResponse.access_token)
-        router.push(redirectTo || "/")
-      } catch (error) {
-        if (error instanceof ApiError) {
-          if (error.code === "ACCOUNT_SUSPENDED") {
-            setErrors({ submit: "Your account has been suspended. Please contact support." })
-          } else {
-            setErrors({ submit: error.message })
-          }
-        } else {
-          setErrors({ submit: "Google sign-in failed. Please try again." })
-        }
-      } finally {
-        setGoogleLoading(false)
-      }
-    },
-    onError: () => {
-      setErrors({ submit: "Google sign-in was cancelled." })
-    },
-  })
+  const handleGoogleLogin = () => {
+    setGoogleLoading(true)
+    signIn("google", { callbackUrl: `/login${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}` })
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -102,9 +116,6 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Welcome Back</h1>
             <p className="text-muted-foreground">Sign in to your EventsKona account</p>
           </div>
-
-          {/* Success Message */}
-          {/* Removed loginSuccess state as we use router navigation instead */}
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -203,7 +214,7 @@ export default function LoginPage() {
           <div className="space-y-3">
             <button
               type="button"
-             onClick={() => handleGoogleLogin()}
+              onClick={handleGoogleLogin}
               disabled={googleLoading || isLoading}
               className="w-full flex items-center justify-center gap-3 border border-border text-foreground py-2.5 rounded-lg hover:bg-muted transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -213,7 +224,7 @@ export default function LoginPage() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
               </svg>
-               {googleLoading ? "Signing in..." : "Continue with Google"}
+              {googleLoading ? "Signing in..." : "Continue with Google"}
             </button>
           </div>
         </div>
