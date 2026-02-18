@@ -5,6 +5,7 @@ import { validateBody } from "@/lib/validate";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { withAuth, withErrorHandler } from "@/lib/server-middleware";
 import type { TokenPayload } from "@/lib/auth";
+import { generateAccessToken, generateRefreshToken } from "@/lib/auth";
 
 const onboardingSchema = z.object({
   firstName: z.string().min(1).trim().optional(),
@@ -182,9 +183,27 @@ async function postHandler(request: NextRequest & { user: TokenPayload }) {
     },
   });
 
+  // If role was upgraded, issue fresh tokens so JWT reflects the new role
+  const roleChanged = updateData.role && updateData.role !== request.user.role;
+  let tokens: { accessToken: string; refreshToken: string } | undefined;
+
+  if (roleChanged) {
+    const tokenPayload = { sub: user.id, email: user.email, role: user.role };
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    // Save new refresh token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken },
+    });
+
+    tokens = { accessToken, refreshToken };
+  }
+
   return successResponse({
-    data: user,
-    message: "Onboarding data saved successfully",
+    data: { ...user, ...(tokens ? { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken } : {}) },
+    message: roleChanged ? "Organizer profile created successfully!" : "Onboarding data saved successfully",
   });
 }
 

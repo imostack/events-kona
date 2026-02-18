@@ -28,7 +28,7 @@ import {
   Check
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { apiClient, ApiError } from "@/lib/api-client"
+import { apiClient, ApiError, setTokens } from "@/lib/api-client"
 
 type SettingsTab = "account" | "organizer" | "password" | "notifications" | "payout" | "preferences" | "privacy"
 
@@ -418,11 +418,17 @@ export default function SettingsPage() {
     }
     setIsSaving(true)
     try {
-      await apiClient("/api/auth/onboarding", {
+      const isFirstTime = !wasOriginallyOrganizer
+      const result = await apiClient<{
+        accessToken?: string
+        refreshToken?: string
+        role: string
+        organizerName: string | null
+        organizerSlug: string | null
+      }>("/api/auth/onboarding", {
         method: "POST",
         body: JSON.stringify({
-          // Only send becomeOrganizer if user wasn't originally an organizer
-          becomeOrganizer: !wasOriginallyOrganizer ? true : undefined,
+          becomeOrganizer: isFirstTime ? true : undefined,
           organizerName: organizerData.organizerName,
           organizerBio: organizerData.bio || undefined,
           organizerWebsite: organizerData.website || undefined,
@@ -433,14 +439,28 @@ export default function SettingsPage() {
           },
         }),
       })
-      showSuccess("Organizer profile saved!")
+
+      // If new tokens were issued (role changed), store them so JWT reflects ORGANIZER
+      if (result.accessToken && result.refreshToken) {
+        setTokens(result.accessToken, result.refreshToken)
+      }
+
       // Update auth context so other pages (e.g. create-event) see the new role
       updateUser({
         role: "ORGANIZER",
         organizerName: organizerData.organizerName,
         organizerSlug: organizerData.organizerSlug || organizerData.organizerName.toLowerCase().replace(/\s+/g, "-"),
       })
-      await loadUserData() // Refresh to get updated role/slug from server
+      setWasOriginallyOrganizer(true)
+      await loadUserData()
+
+      if (isFirstTime) {
+        // First-time organizer: switch to account tab so success message is clearly visible
+        showSuccess("Organizer profile created! You can now create events.")
+        setActiveTab("account")
+      } else {
+        showSuccess("Organizer profile updated!")
+      }
     } catch (error) {
       showError(error instanceof ApiError ? error.message : "Failed to save organizer profile")
     } finally {
@@ -689,7 +709,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (authLoading || !user) {
+  if (authLoading || !user || isDataLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
