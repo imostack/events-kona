@@ -7,11 +7,21 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL environment variable is not set!");
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString?.trim()) {
+    throw new Error(
+      "DATABASE_URL is not set. Add it in Vercel: Project → Settings → Environment Variables."
+    );
+  }
+  try {
+    new URL(connectionString);
+  } catch {
+    throw new Error(
+      "DATABASE_URL is not a valid URL. Use your provider's full PostgreSQL connection string."
+    );
   }
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 10000,
     idle_in_transaction_session_timeout: 30000,
