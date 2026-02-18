@@ -25,6 +25,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const bridgingRef = useRef(false)
 
+  // If we have a session but no access token, Google OAuth config may be wrong (e.g. NEXTAUTH_SECRET or callbacks)
+  useEffect(() => {
+    if (status === "authenticated" && session && !session.accessToken && !bridgingRef.current) {
+      setErrors({ submit: "Google sign-in could not complete. Please check server configuration (NEXTAUTH_SECRET, Google OAuth)." })
+      setGoogleLoading(false)
+    }
+  }, [status, session])
+
   // Bridge NextAuth session into custom auth system
   useEffect(() => {
     if (status !== "authenticated" || !session?.accessToken || bridgingRef.current) return
