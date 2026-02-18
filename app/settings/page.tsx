@@ -689,7 +689,18 @@ export default function SettingsPage() {
     }
   }
 
-  if (!user) return null
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="animate-spin text-primary" size={32} />
+          <span className="ml-3 text-muted-foreground">Loading settings...</span>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
