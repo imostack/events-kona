@@ -28,7 +28,7 @@ async function getHandler(
       organizerVerified: true,
       _count: {
         select: {
-          followers: true,
+          following: true, // UserFollower records where followingId = this user = people who follow this organizer
           events: true,
         },
       },
@@ -65,7 +65,7 @@ async function getHandler(
       avatar: organizer.avatarUrl,
       bio: organizer.bio,
       verified: organizer.organizerVerified,
-      followersCount: organizer._count.followers,
+      followersCount: organizer._count.following,
       eventsCount: organizer._count.events,
       totalLikes,
       totalAttendees: eventStats._sum.ticketsSold || 0,

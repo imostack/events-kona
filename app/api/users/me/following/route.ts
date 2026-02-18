@@ -24,7 +24,7 @@ async function getHandler(request: NextRequest & { user: TokenPayload }) {
           organizerVerified: true,
           _count: {
             select: {
-              followers: true,
+              following: true, // people who follow this organizer
               events: true,
             },
           },
@@ -39,7 +39,7 @@ async function getHandler(request: NextRequest & { user: TokenPayload }) {
     slug: f.following.organizerSlug || f.following.id,
     avatar: f.following.avatarUrl,
     verified: f.following.organizerVerified,
-    followersCount: f.following._count.followers,
+    followersCount: f.following._count.following,
     eventsCount: f.following._count.events,
     followedAt: f.createdAt,
   }));

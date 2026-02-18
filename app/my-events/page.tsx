@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api-client"
 import type { ApiEvent, ApiTicket } from "@/lib/types"
 import PromoCodeManager from "@/components/promo-code-manager"
+import AttendeeList from "@/components/attendee-list"
 import {
   Plus,
   ArrowLeft,
@@ -75,6 +76,8 @@ export default function UserDashboard() {
   const [totalLikesOnMyEvents, setTotalLikesOnMyEvents] = useState(0)
   const [promoEventId, setPromoEventId] = useState<string | null>(null)
   const [promoEventTitle, setPromoEventTitle] = useState("")
+  const [attendeeEventId, setAttendeeEventId] = useState<string | null>(null)
+  const [attendeeEventTitle, setAttendeeEventTitle] = useState("")
 
   // Fetch my events from API
   const fetchMyEvents = useCallback(async () => {
@@ -398,6 +401,13 @@ export default function UserDashboard() {
                                       <Edit size={20} />
                                     </button>
                                   </Link>
+                                  <button
+                                    onClick={() => { setAttendeeEventId(event.id); setAttendeeEventTitle(event.title) }}
+                                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                                    title="View Attendees"
+                                  >
+                                    <Users size={20} />
+                                  </button>
                                   {(status === "live" || status === "draft") && (
                                     <button
                                       onClick={() => { setPromoEventId(event.id); setPromoEventTitle(event.title) }}
@@ -591,53 +601,53 @@ export default function UserDashboard() {
                       const ticketLocation = [ticket.event.venueName, ticket.event.city, ticket.event.country].filter(Boolean).join(", ") || "Online"
                       const ticketStatusDisplay = ticket.status === "ACTIVE" ? "valid" : ticket.status.toLowerCase()
                       return (
-                        <div key={ticket.id} className="bg-card border rounded-xl p-6 hover:shadow-md transition-shadow">
-                          <div className="flex flex-col md:flex-row justify-between gap-4">
-                            <div className="flex-1">
-                              <h3 className="text-xl font-bold text-foreground mb-2">{ticket.event.title}</h3>
-                              <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                                <div className="flex items-center gap-2">
-                                  <Calendar size={16} />
-                                  {formatDate(ticket.event.startDate)}
-                                  {ticket.event.startTime && ` • ${ticket.event.startTime}`}
+                        <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
+                          <div className="bg-card border rounded-xl p-6 hover:shadow-md hover:border-primary/50 transition-all cursor-pointer">
+                            <div className="flex flex-col md:flex-row justify-between gap-4">
+                              <div className="flex-1">
+                                <h3 className="text-xl font-bold text-foreground mb-2">{ticket.event.title}</h3>
+                                <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar size={16} />
+                                    {formatDate(ticket.event.startDate)}
+                                    {ticket.event.startTime && ` • ${ticket.event.startTime}`}
+                                  </div>
+                                  <div className="flex items-center gap-2"><MapPin size={16} />{ticketLocation}</div>
+                                  <div className="flex items-center gap-2"><Ticket size={16} />{ticket.ticketType.name}</div>
                                 </div>
-                                <div className="flex items-center gap-2"><MapPin size={16} />{ticketLocation}</div>
-                                <div className="flex items-center gap-2"><Ticket size={16} />{ticket.ticketType.name}</div>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-sm text-muted-foreground">#{ticket.ticketNumber}</span>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                    ticket.status === "ACTIVE" ? "bg-green-100 text-green-700" :
+                                    ticket.status === "USED" ? "bg-gray-100 text-gray-700" :
+                                    "bg-red-100 text-red-700"
+                                  }`}>
+                                    {ticketStatusDisplay}
+                                  </span>
+                                  {ticket.checkedIn && (
+                                    <span className="text-xs text-muted-foreground">Checked in</span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-sm text-muted-foreground">#{ticket.ticketNumber}</span>
-                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                  ticket.status === "ACTIVE" ? "bg-green-100 text-green-700" :
-                                  ticket.status === "USED" ? "bg-gray-100 text-gray-700" :
-                                  "bg-red-100 text-red-700"
-                                }`}>
-                                  {ticketStatusDisplay}
-                                </span>
-                                {ticket.checkedIn && (
-                                  <span className="text-xs text-muted-foreground">Checked in</span>
+                              <div className="flex flex-col items-center justify-center gap-3">
+                                {ticket.qrCode ? (
+                                  <Image
+                                    src={ticket.qrCode}
+                                    alt="QR Code"
+                                    width={128}
+                                    height={128}
+                                    className="rounded-lg"
+                                  />
+                                ) : (
+                                  <div className="w-32 h-32 bg-muted rounded-lg flex items-center justify-center">
+                                    <div className="text-xs text-muted-foreground">QR Code</div>
+                                  </div>
                                 )}
+                                <span className="text-primary text-sm font-semibold">View Ticket →</span>
                               </div>
-                            </div>
-                            <div className="flex flex-col items-center justify-center gap-3">
-                              {ticket.qrCode ? (
-                                <Image
-                                  src={ticket.qrCode}
-                                  alt="QR Code"
-                                  width={128}
-                                  height={128}
-                                  className="rounded-lg"
-                                />
-                              ) : (
-                                <div className="w-32 h-32 bg-muted rounded-lg flex items-center justify-center">
-                                  <div className="text-xs text-muted-foreground">QR Code</div>
-                                </div>
-                              )}
-                              <Link href={`/event/${ticket.event.id || ticket.event.slug}`}>
-                                <button className="text-primary hover:underline text-sm font-semibold">View Event</button>
-                              </Link>
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       )
                     })}
                   </div>
@@ -721,6 +731,16 @@ export default function UserDashboard() {
           </div>
         </section>
       </main>
+
+      {/* Attendee List Dialog */}
+      {attendeeEventId && (
+        <AttendeeList
+          eventId={attendeeEventId}
+          eventTitle={attendeeEventTitle}
+          open={!!attendeeEventId}
+          onOpenChange={(open) => { if (!open) setAttendeeEventId(null) }}
+        />
+      )}
 
       {/* Promo Code Manager Dialog */}
       {promoEventId && (

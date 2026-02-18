@@ -429,41 +429,43 @@ export default function OrderDetailPage() {
               </h3>
               <div className="space-y-3">
                 {order.tickets.map((ticket) => (
-                  <div key={ticket.id} className="flex items-start gap-3 p-3 border border-border rounded-lg">
-                    {/* QR Code */}
-                    {ticket.qrCode && (
-                      <div className="w-16 h-16 bg-white p-1 rounded shrink-0">
-                        <Image
-                          src={ticket.qrCode}
-                          alt={`QR ${ticket.ticketNumber}`}
-                          width={56}
-                          height={56}
-                          className="w-full h-full"
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground">{ticket.ticketType.name}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${
-                          ticket.status === "ACTIVE" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                          ticket.status === "USED" ? "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" :
-                          "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                        }`}>
-                          {ticket.status}
-                        </span>
-                        {ticket.checkedIn && (
-                          <span className="text-xs text-green-600 flex items-center gap-0.5">
-                            <CheckCircle size={12} /> Checked in
+                  <Link key={ticket.id} href={`/tickets/${ticket.id}`}>
+                    <div className="flex items-start gap-3 p-3 border border-border rounded-lg hover:border-primary/50 transition-colors cursor-pointer">
+                      {/* QR Code */}
+                      {ticket.qrCode && (
+                        <div className="w-16 h-16 bg-white p-1 rounded shrink-0">
+                          <Image
+                            src={ticket.qrCode}
+                            alt={`QR ${ticket.ticketNumber}`}
+                            width={56}
+                            height={56}
+                            className="w-full h-full"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">{ticket.ticketType.name}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            ticket.status === "ACTIVE" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                            ticket.status === "USED" ? "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" :
+                            "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                          }`}>
+                            {ticket.status}
                           </span>
+                          {ticket.checkedIn && (
+                            <span className="text-xs text-green-600 flex items-center gap-0.5">
+                              <CheckCircle size={12} /> Checked in
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{ticket.ticketNumber}</p>
+                        {ticket.attendeeName && (
+                          <p className="text-xs text-muted-foreground">{ticket.attendeeName} · {ticket.attendeeEmail}</p>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{ticket.ticketNumber}</p>
-                      {ticket.attendeeName && (
-                        <p className="text-xs text-muted-foreground">{ticket.attendeeName} · {ticket.attendeeEmail}</p>
-                      )}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

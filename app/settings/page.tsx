@@ -39,7 +39,7 @@ interface Bank {
 }
 
 export default function SettingsPage() {
-  const { user, isLoading: authLoading, logout } = useAuth()
+  const { user, isLoading: authLoading, logout, updateUser } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = (searchParams.get("tab") as SettingsTab) || "account"
@@ -160,6 +160,14 @@ export default function SettingsPage() {
         phone: data.phone || "",
         profileImageUrl: data.avatarUrl || "",
       }))
+
+      // Sync auth context with latest server data
+      updateUser({
+        role: data.role,
+        organizerName: data.organizerName || null,
+        organizerSlug: data.organizerSlug || null,
+        avatarUrl: data.avatarUrl || null,
+      })
 
       // Populate organizer data
       const isOrg = data.role === "ORGANIZER" || data.role === "ADMIN"
@@ -426,7 +434,13 @@ export default function SettingsPage() {
         }),
       })
       showSuccess("Organizer profile saved!")
-      await loadUserData() // Refresh to get updated role/slug
+      // Update auth context so other pages (e.g. create-event) see the new role
+      updateUser({
+        role: "ORGANIZER",
+        organizerName: organizerData.organizerName,
+        organizerSlug: organizerData.organizerSlug || organizerData.organizerName.toLowerCase().replace(/\s+/g, "-"),
+      })
+      await loadUserData() // Refresh to get updated role/slug from server
     } catch (error) {
       showError(error instanceof ApiError ? error.message : "Failed to save organizer profile")
     } finally {
