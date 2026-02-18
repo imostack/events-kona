@@ -4,6 +4,9 @@ import { withAuth } from "@/lib/server-middleware";
 import { TokenPayload } from "@/lib/auth";
 import { errorResponse } from "@/lib/api-response";
 
+// Next.js App Router: increase body size limit for file uploads
+export const dynamic = "force-dynamic";
+
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -85,8 +88,9 @@ export const POST = withAuth(async (request: NextRequest & { user: TokenPayload 
     });
   } catch (error) {
     console.error("Upload error:", error);
+    const errMsg = error instanceof Error ? error.message : "Unknown error";
     return errorResponse({
-      message: "Failed to upload image",
+      message: `Failed to upload image: ${errMsg}`,
       status: 500,
       code: "UPLOAD_FAILED",
     });
