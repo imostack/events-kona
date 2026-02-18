@@ -55,8 +55,30 @@ async function handler(request: NextRequest) {
 
   let user: Awaited<ReturnType<typeof prisma.user.findUnique>>;
   try {
-    // Check if user already exists
-    user = await prisma.user.findUnique({ where: { email } });
+    // Log connection info (masked for security)
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      const masked = dbUrl.replace(/:\/\/[^:]+:[^@]+@/, "://***:***@").replace(/@[^/]+/, "@***");
+      console.log("[auth/google] DATABASE_URL format check:", masked.substring(0, 50) + "...");
+    }
+    
+    // Check if user already exists with retry for connection issues
+    let retries = 2;
+    while (retries >= 0) {
+      try {
+        user = await prisma.user.findUnique({ where: { email } });
+        break; // Success
+      } catch (retryError) {
+        const retryMsg = retryError instanceof Error ? retryError.message : String(retryError);
+        if (retries > 0 && (retryMsg.includes("Can't reach") || retryMsg.includes("timeout") || retryMsg.includes("ECONNREFUSED"))) {
+          console.warn(`[auth/google] DB connection retry ${3 - retries}/3:`, retryMsg);
+          await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+          retries--;
+        } else {
+          throw retryError; // Re-throw if not retryable or out of retries
+        }
+      }
+    }
 
     if (user) {
       // Existing user — check if suspended

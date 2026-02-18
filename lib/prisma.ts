@@ -13,11 +13,21 @@ function createPrismaClient() {
       "DATABASE_URL is not set. Add it in Vercel: Project → Settings → Environment Variables."
     );
   }
+  
+  // Log connection string format (masked) for debugging
+  if (process.env.NODE_ENV === "development" || process.env.EXPOSE_SERVER_ERRORS === "1") {
+    const masked = connectionString
+      .replace(/:\/\/[^:]+:[^@]+@/, "://***:***@")
+      .replace(/@([^/]+)/, "@***");
+    console.log("[prisma] DATABASE_URL format:", masked.substring(0, 80) + "...");
+  }
+  
   const pool = new Pool({
     connectionString,
     ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 15000, // Increased from 10s to 15s for serverless cold starts
     idle_in_transaction_session_timeout: 30000,
+    max: 1, // Limit connections per serverless function instance
   });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({
@@ -31,4 +41,7 @@ function createPrismaClient() {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// Cache Prisma client globally to avoid creating multiple connections in serverless
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = prisma;
+}
