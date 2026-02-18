@@ -9,7 +9,7 @@ import Footer from "@/components/footer"
 import { Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { ApiError } from "@/lib/api-client"
-import { signIn } from "next-auth/react";
+import { useGoogleLogin } from "@react-oauth/google"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -66,10 +66,30 @@ export default function LoginPage() {
     }
   }
 
-   const handleGoogleLogin = () => {
-    setGoogleLoading(true)
-    signIn("google", { callbackUrl: redirectTo || "/" })
-  }
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setGoogleLoading(true)
+      try {
+        await googleLogin(tokenResponse.access_token)
+        router.push(redirectTo || "/")
+      } catch (error) {
+        if (error instanceof ApiError) {
+          if (error.code === "ACCOUNT_SUSPENDED") {
+            setErrors({ submit: "Your account has been suspended. Please contact support." })
+          } else {
+            setErrors({ submit: error.message })
+          }
+        } else {
+          setErrors({ submit: "Google sign-in failed. Please try again." })
+        }
+      } finally {
+        setGoogleLoading(false)
+      }
+    },
+    onError: () => {
+      setErrors({ submit: "Google sign-in was cancelled." })
+    },
+  })
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -183,7 +203,7 @@ export default function LoginPage() {
           <div className="space-y-3">
             <button
               type="button"
-             onClick={handleGoogleLogin}
+             onClick={() => handleGoogleLogin()}
               disabled={googleLoading || isLoading}
               className="w-full flex items-center justify-center gap-3 border border-border text-foreground py-2.5 rounded-lg hover:bg-muted transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
