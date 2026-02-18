@@ -128,7 +128,36 @@ async function postHandler(request: NextRequest & { user: TokenPayload }) {
   }
 
   // Update organizer fields (for both new and existing organizers)
-  if (data.organizerName !== undefined) updateData.organizerName = data.organizerName;
+  if (data.organizerName !== undefined) {
+    updateData.organizerName = data.organizerName;
+
+    // If organizer name changed, regenerate and validate slug uniqueness
+    if (isAlreadyOrganizer && data.organizerName) {
+      const newSlug = data.organizerName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      if (newSlug !== currentUser?.organizerSlug) {
+        const existingSlug = await prisma.user.findFirst({
+          where: {
+            organizerSlug: newSlug,
+            id: { not: request.user.sub },
+          },
+        });
+
+        if (existingSlug) {
+          return errorResponse({
+            message: "Organizer name is already taken. Please choose another.",
+            status: 409,
+            code: "SLUG_EXISTS",
+          });
+        }
+
+        updateData.organizerSlug = newSlug;
+      }
+    }
+  }
   if (data.organizerBio !== undefined) updateData.organizerBio = data.organizerBio;
   if (data.organizerWebsite !== undefined) updateData.organizerWebsite = data.organizerWebsite;
   if (data.organizerLogo !== undefined) updateData.organizerLogo = data.organizerLogo || null;
