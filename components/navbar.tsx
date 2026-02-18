@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
-import { Menu, X, Calendar, LogOut, Settings, PlusCircle } from "lucide-react"
+import { Menu, X, Calendar, LogOut, Settings, PlusCircle, ShoppingBag } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function Navbar() {
@@ -40,6 +40,9 @@ export default function Navbar() {
               <>
                 <Link href="/my-events" className="text-foreground hover:text-primary transition-colors font-semibold">
                   My Events
+                </Link>
+                <Link href="/orders" className="text-foreground hover:text-primary transition-colors font-semibold">
+                  Orders
                 </Link>
                 <Link
                   href="/create-event"
@@ -78,6 +81,12 @@ export default function Navbar() {
                       <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
                         <Calendar size={18} className="text-muted-foreground" />
                         <span className="text-sm font-medium">My Events</span>
+                      </div>
+                    </Link>
+                    <Link href="/orders" onClick={() => setShowUserMenu(false)}>
+                      <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
+                        <ShoppingBag size={18} className="text-muted-foreground" />
+                        <span className="text-sm font-medium">My Orders</span>
                       </div>
                     </Link>
                     <Link href="/create-event" onClick={() => setShowUserMenu(false)}>
@@ -155,6 +164,11 @@ export default function Navbar() {
                 <Link href="/my-events" onClick={() => setIsOpen(false)}>
                   <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
                     My Events
+                  </div>
+                </Link>
+                <Link href="/orders" onClick={() => setIsOpen(false)}>
+                  <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
+                    My Orders
                   </div>
                 </Link>
                 <Link href="/create-event" onClick={() => setIsOpen(false)}>

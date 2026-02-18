@@ -19,15 +19,30 @@ function createPrismaClient() {
     const masked = connectionString
       .replace(/:\/\/[^:]+:[^@]+@/, "://***:***@")
       .replace(/@([^/]+)/, "@***");
-    console.log("[prisma] DATABASE_URL format:", masked.substring(0, 80) + "...");
+    const port = connectionString.match(/:(\d+)\//)?.[1] || "unknown";
+    const isPooler = connectionString.includes("pooler");
+    console.log(`[prisma] DATABASE_URL format: ${masked.substring(0, 80)}... (port: ${port}, pooler: ${isPooler})`);
+    
+    // Warn if using Supabase session pooler (5432) instead of transaction pooler (6543) for serverless
+    if (isPooler && port === "5432" && process.env.VERCEL) {
+      console.warn("[prisma] Using Supabase session pooler (5432). For Vercel serverless, consider transaction pooler (6543) for better compatibility.");
+    }
   }
+  
+  // Supabase pooler configuration
+  const isSupabasePooler = connectionString.includes("pooler.supabase.com");
   
   const pool = new Pool({
     connectionString,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 15000, // Increased from 10s to 15s for serverless cold starts
     idle_in_transaction_session_timeout: 30000,
-    max: 1, // Limit connections per serverless function instance
+    max: isSupabasePooler ? 1 : 1, // Limit connections per serverless function instance
+    // Supabase pooler needs these settings
+    ...(isSupabasePooler && {
+      statement_timeout: 30000,
+      query_timeout: 30000,
+    }),
   });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({

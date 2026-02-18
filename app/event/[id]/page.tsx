@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth-context"
 import type { ApiEvent } from "@/lib/types"
 import { formatPrice } from "@/lib/currency-utils"
 import { Calendar, MapPin, ArrowLeft, Share2, Heart, Star, UserPlus, UserCheck, ExternalLink, Users, Loader2, Clock, Video, CheckCircle, Ticket, Edit } from "lucide-react"
+import CheckoutDialog from "@/components/checkout-dialog"
 
 const MapDisplay = dynamic(() => import("@/components/map-display"), { ssr: false })
 
@@ -28,7 +29,7 @@ export default function EventDetailsPage() {
   const [likesCount, setLikesCount] = useState(0)
   const [isFollowing, setIsFollowing] = useState(false)
   const [isRegistered, setIsRegistered] = useState(false)
-  const [isRegistering, setIsRegistering] = useState(false)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
 
   // Fetch event from API
@@ -165,27 +166,12 @@ export default function EventDetailsPage() {
   // Check if the current user is the organizer of this event
   const isOwnEvent = isAuthenticated && user?.id === event.organizer?.id
 
-  const handleRegister = async () => {
+  const handleGetTickets = () => {
     if (!isAuthenticated) {
       router.push(`/login?redirect=/event/${eventId}`)
       return
     }
-
-    if (isRegistered) return
-
-    setIsRegistering(true)
-    try {
-      await apiClient(`/api/events/${eventId}/register`, { method: "POST" })
-      setIsRegistered(true)
-    } catch (err) {
-      if (err instanceof ApiError) {
-        alert(err.message)
-      } else {
-        alert("Failed to register. Please try again.")
-      }
-    } finally {
-      setIsRegistering(false)
-    }
+    setCheckoutOpen(true)
   }
 
   const handleFollow = async () => {
@@ -480,21 +466,11 @@ export default function EventDetailsPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={handleRegister}
-                    disabled={isRegistering}
-                    className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors mb-3 flex items-center justify-center gap-2 disabled:opacity-50"
+                    onClick={handleGetTickets}
+                    className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors mb-3 flex items-center justify-center gap-2"
                   >
-                    {isRegistering ? (
-                      <>
-                        <Loader2 size={20} className="animate-spin" />
-                        Registering...
-                      </>
-                    ) : (
-                      <>
-                        <Ticket size={20} />
-                        {event.isFree ? "Register for Free" : "Get Tickets"}
-                      </>
-                    )}
+                    <Ticket size={20} />
+                    {event.isFree ? "Register for Free" : "Get Tickets"}
                   </button>
                 )}
                 <button className="w-full border border-border text-foreground py-3 rounded-lg font-semibold hover:bg-muted transition-colors">
@@ -632,20 +608,29 @@ export default function EventDetailsPage() {
               </button>
             ) : (
               <button
-                onClick={handleRegister}
-                disabled={isRegistering}
-                className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 shrink-0"
+                onClick={handleGetTickets}
+                className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 shrink-0"
               >
-                {isRegistering ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <Ticket size={18} />
-                )}
+                <Ticket size={18} />
                 {event.isFree ? "Register" : "Get Tickets"}
               </button>
             )}
           </div>
         </div>
+      )}
+
+      {/* Checkout Dialog */}
+      {event && (
+        <CheckoutDialog
+          event={event}
+          open={checkoutOpen}
+          onOpenChange={setCheckoutOpen}
+          onSuccess={(orderId, isFree) => {
+            setCheckoutOpen(false)
+            setIsRegistered(true)
+            router.push(`/orders/${orderId}`)
+          }}
+        />
       )}
 
       <Footer />
