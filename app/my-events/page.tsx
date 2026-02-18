@@ -9,6 +9,7 @@ import Footer from "@/components/footer"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api-client"
 import type { ApiEvent, ApiTicket } from "@/lib/types"
+import PromoCodeManager from "@/components/promo-code-manager"
 import {
   Plus,
   ArrowLeft,
@@ -24,7 +25,9 @@ import {
   Clock,
   Loader2,
   Send,
-  UserCheck
+  UserCheck,
+  Ban,
+  Tag,
 } from "lucide-react"
 
 type DashboardTab = "my-events" | "liked" | "following" | "tickets" | "analytics"
@@ -70,6 +73,8 @@ export default function UserDashboard() {
   const [myTickets, setMyTickets] = useState<ApiTicket[]>([])
   const [followers, setFollowers] = useState<Follower[]>([])
   const [totalLikesOnMyEvents, setTotalLikesOnMyEvents] = useState(0)
+  const [promoEventId, setPromoEventId] = useState<string | null>(null)
+  const [promoEventTitle, setPromoEventTitle] = useState("")
 
   // Fetch my events from API
   const fetchMyEvents = useCallback(async () => {
@@ -176,6 +181,29 @@ export default function UserDashboard() {
     } catch (error) {
       console.error("Failed to publish event:", error)
       const message = error instanceof Error ? error.message : "Failed to publish event"
+      alert(message)
+    }
+  }
+
+  const handleCancelEvent = async (eventId: string) => {
+    const reason = prompt("Why are you cancelling this event? (min 10 characters)")
+    if (!reason) return
+    if (reason.length < 10) {
+      alert("Cancellation reason must be at least 10 characters.")
+      return
+    }
+    const notifyAttendees = confirm("Notify attendees about the cancellation?")
+    try {
+      await apiClient(`/api/events/${eventId}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ reason, notifyAttendees }),
+      })
+      setMyEvents(prev => prev.map(e =>
+        e.id === eventId ? { ...e, isCancelled: true } : e
+      ))
+    } catch (error) {
+      console.error("Failed to cancel event:", error)
+      const message = error instanceof Error ? error.message : "Failed to cancel event"
       alert(message)
     }
   }
@@ -370,6 +398,20 @@ export default function UserDashboard() {
                                       <Edit size={20} />
                                     </button>
                                   </Link>
+                                  {(status === "live" || status === "draft") && (
+                                    <button
+                                      onClick={() => { setPromoEventId(event.id); setPromoEventTitle(event.title) }}
+                                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                                      title="Promo Codes"
+                                    >
+                                      <Tag size={20} />
+                                    </button>
+                                  )}
+                                  {status === "live" && (
+                                    <button onClick={() => handleCancelEvent(event.id)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors" title="Cancel Event">
+                                      <Ban size={20} />
+                                    </button>
+                                  )}
                                   <button onClick={() => handleDeleteEvent(event.id)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors" title="Delete">
                                     <Trash2 size={20} />
                                   </button>
@@ -679,6 +721,16 @@ export default function UserDashboard() {
           </div>
         </section>
       </main>
+
+      {/* Promo Code Manager Dialog */}
+      {promoEventId && (
+        <PromoCodeManager
+          eventId={promoEventId}
+          eventTitle={promoEventTitle}
+          open={!!promoEventId}
+          onOpenChange={(open) => { if (!open) setPromoEventId(null) }}
+        />
+      )}
 
       <Footer />
     </div>

@@ -31,6 +31,7 @@ export default function EventDetailsPage() {
   const [isRegistered, setIsRegistered] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
+  const [unregisterLoading, setUnregisterLoading] = useState(false)
 
   // Fetch event from API
   const fetchEvent = useCallback(async () => {
@@ -172,6 +173,21 @@ export default function EventDetailsPage() {
       return
     }
     setCheckoutOpen(true)
+  }
+
+  const handleUnregister = async () => {
+    if (!confirm("Are you sure you want to unregister from this event?")) return
+    setUnregisterLoading(true)
+    try {
+      await apiClient(`/api/events/${eventId}/register`, { method: "DELETE" })
+      setIsRegistered(false)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        alert(err.message)
+      }
+    } finally {
+      setUnregisterLoading(false)
+    }
   }
 
   const handleFollow = async () => {
@@ -460,10 +476,22 @@ export default function EventDetailsPage() {
                     </button>
                   </Link>
                 ) : isRegistered ? (
-                  <button disabled className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold cursor-default mb-3 flex items-center justify-center gap-2">
-                    <CheckCircle size={20} />
-                    Registered
-                  </button>
+                  <div className="mb-3 space-y-2">
+                    <button disabled className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold cursor-default flex items-center justify-center gap-2">
+                      <CheckCircle size={20} />
+                      Registered
+                    </button>
+                    {event.isFree && (
+                      <button
+                        onClick={handleUnregister}
+                        disabled={unregisterLoading}
+                        className="w-full border border-destructive text-destructive py-2 rounded-lg text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {unregisterLoading ? <Loader2 size={16} className="animate-spin" /> : null}
+                        Unregister
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <button
                     onClick={handleGetTickets}
@@ -602,10 +630,21 @@ export default function EventDetailsPage() {
               </p>
             </div>
             {isRegistered ? (
-              <button disabled className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 shrink-0">
-                <CheckCircle size={18} />
-                Registered
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {event.isFree && (
+                  <button
+                    onClick={handleUnregister}
+                    disabled={unregisterLoading}
+                    className="border border-destructive text-destructive px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                  >
+                    {unregisterLoading ? <Loader2 size={16} className="animate-spin" /> : "Unregister"}
+                  </button>
+                )}
+                <button disabled className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                  <CheckCircle size={18} />
+                  Registered
+                </button>
+              </div>
             ) : (
               <button
                 onClick={handleGetTickets}
