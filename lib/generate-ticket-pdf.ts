@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf"
+import QRCodeLib from "qrcode"
 
 interface TicketData {
   ticketNumber: string
@@ -27,7 +28,7 @@ interface TicketData {
   }
 }
 
-export function generateTicketPdf(ticket: TicketData) {
+export async function generateTicketPdf(ticket: TicketData) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a5" })
   const pageWidth = doc.internal.pageSize.getWidth()
 
@@ -125,9 +126,14 @@ export function generateTicketPdf(ticket: TicketData) {
   // QR Code
   if (ticket.qrCode) {
     try {
+      const qrDataUrl = await QRCodeLib.toDataURL(ticket.qrCode, {
+        width: 150,
+        margin: 1,
+        color: { dark: "#000000", light: "#ffffff" },
+      })
       const qrSize = 50
       const qrX = (pageWidth - qrSize) / 2
-      doc.addImage(ticket.qrCode, "PNG", qrX, y, qrSize, qrSize)
+      doc.addImage(qrDataUrl, "PNG", qrX, y, qrSize, qrSize)
       y += qrSize + 4
       doc.setFontSize(8)
       doc.setTextColor(120, 120, 120)

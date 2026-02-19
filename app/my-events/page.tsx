@@ -9,6 +9,7 @@ import Footer from "@/components/footer"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api-client"
 import type { ApiEvent, ApiTicket } from "@/lib/types"
+import QRCode from "react-qr-code"
 import PromoCodeManager from "@/components/promo-code-manager"
 import AttendeeList from "@/components/attendee-list"
 import {
@@ -631,13 +632,9 @@ export default function UserDashboard() {
                               </div>
                               <div className="flex flex-col items-center justify-center gap-3">
                                 {ticket.qrCode ? (
-                                  <Image
-                                    src={ticket.qrCode}
-                                    alt="QR Code"
-                                    width={128}
-                                    height={128}
-                                    className="rounded-lg"
-                                  />
+                                  <div className="bg-white p-2 rounded-lg">
+                                    <QRCode value={ticket.qrCode} size={112} />
+                                  </div>
                                 ) : (
                                   <div className="w-32 h-32 bg-muted rounded-lg flex items-center justify-center">
                                     <div className="text-xs text-muted-foreground">QR Code</div>

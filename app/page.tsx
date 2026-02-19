@@ -7,7 +7,7 @@ import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import SearchBar from "@/components/search-bar"
 import EventCard from "@/components/event-card"
-import { Search, Plus, Music, Briefcase, Utensils, Palette, Trophy, Cpu, GraduationCap, Calendar, Users, TrendingUp, X, MapPin } from "lucide-react"
+import { Search, Plus, Music, Briefcase, Utensils, Palette, Trophy, Cpu, GraduationCap, Calendar, Users, TrendingUp, X, MapPin, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api-client"
 import type { ApiEvent } from "@/lib/types"
@@ -32,6 +32,7 @@ const heroImages = [
   "https://res.cloudinary.com/dlcl5rqnh/image/upload/v1767950945/abstract-concept-3_zumxcw.webp",
 ]
 
+const EVENTS_PER_PAGE = 6
 
 function EventCardSkeleton() {
   return (
@@ -53,6 +54,94 @@ function EventCardSkeleton() {
   )
 }
 
+// Featured events auto-sliding carousel
+function FeaturedSlider({ events }: { events: ApiEvent[] }) {
+  const [current, setCurrent] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => {
+      setCurrent(prev => (prev + 1) % events.length)
+    }, 5000)
+  }
+
+  useEffect(() => {
+    if (events.length <= 1) return
+    startTimer()
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [events.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const go = (idx: number) => {
+    setCurrent((idx + events.length) % events.length)
+    startTimer()
+  }
+
+  if (events.length === 0) return null
+
+  // Single event — just a card, no slider chrome
+  if (events.length === 1) {
+    return (
+      <div className="max-w-sm">
+        <EventCard event={apiEventToLegacy(events[0])} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative">
+      {/* Cards — show up to 3 at a time, sliding one at a time */}
+      <div className="overflow-hidden">
+        <div
+          className="flex transition-transform duration-500 ease-in-out gap-6"
+          style={{ transform: `translateX(calc(-${current * (100 / Math.min(events.length, 3))}% - ${current * 8}px))` }}
+        >
+          {events.map((event) => (
+            <div
+              key={event.id}
+              className="flex-shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+            >
+              <EventCard event={apiEventToLegacy(event)} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Prev / Next */}
+      {events.length > 1 && (
+        <>
+          <button
+            onClick={() => go(current - 1)}
+            className="absolute -left-4 top-1/2 -translate-y-1/2 w-9 h-9 bg-card border border-border rounded-full flex items-center justify-center shadow hover:bg-muted transition-colors z-10"
+            aria-label="Previous"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            onClick={() => go(current + 1)}
+            className="absolute -right-4 top-1/2 -translate-y-1/2 w-9 h-9 bg-card border border-border rounded-full flex items-center justify-center shadow hover:bg-muted transition-colors z-10"
+            aria-label="Next"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </>
+      )}
+
+      {/* Dots */}
+      <div className="flex justify-center gap-2 mt-5">
+        {events.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => go(i)}
+            className={`h-2 rounded-full transition-all ${i === current ? "w-6 bg-primary" : "w-2 bg-border hover:bg-muted-foreground"}`}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState("all")
@@ -62,6 +151,8 @@ export default function Home() {
   const [countryFilter, setCountryFilter] = useState("")
   const [prefsLoaded, setPrefsLoaded] = useState(false)
   const [showFreeFirst, setShowFreeFirst] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(EVENTS_PER_PAGE)
+  const [loadingMore, setLoadingMore] = useState(false)
   const resultsRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
 
@@ -72,7 +163,7 @@ export default function Home() {
   const [totalEvents, setTotalEvents] = useState(0)
   const [platformStats, setPlatformStats] = useState({ events: 0, organizers: 0, attendees: 0 })
 
-  // Load user preferences to set default filters
+  // Load user preferences
   useEffect(() => {
     if (!user) {
       setPrefsLoaded(true)
@@ -84,22 +175,15 @@ export default function Home() {
         const data = await apiClient<{ preferences: Record<string, unknown> | null }>("/api/auth/onboarding")
         if (data.preferences) {
           const prefs = data.preferences
-          if (prefs.preferredCountry && !countryFilter) {
-            setCountryFilter(prefs.preferredCountry as string)
-          }
-          if (prefs.preferredLocation && !cityFilter) {
-            setCityFilter(prefs.preferredLocation as string)
-          }
+          if (prefs.preferredCountry && !countryFilter) setCountryFilter(prefs.preferredCountry as string)
+          if (prefs.preferredLocation && !cityFilter) setCityFilter(prefs.preferredLocation as string)
           if (prefs.preferredCategories && (prefs.preferredCategories as string[]).length > 0 && filterType === "all") {
-            // Set first preferred category as default filter
             setFilterType((prefs.preferredCategories as string[])[0])
           }
-          if (prefs.showFreeEventsFirst) {
-            setShowFreeFirst(true)
-          }
+          if (prefs.showFreeEventsFirst) setShowFreeFirst(true)
         }
       } catch {
-        // Silently fail - preferences are not critical
+        // Silently fail
       } finally {
         setPrefsLoaded(true)
       }
@@ -115,16 +199,15 @@ export default function Home() {
       .catch(() => {})
   }, [])
 
-  // Auto-rotate hero background images
+  // Auto-rotate hero images
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % heroImages.length)
     }, 8000)
-
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch events from API (waits for preferences to load first)
+  // Fetch events
   useEffect(() => {
     if (!prefsLoaded) return
 
@@ -133,24 +216,18 @@ export default function Home() {
 
     async function fetchEvents() {
       setIsLoading(true)
+      setVisibleCount(EVENTS_PER_PAGE)
       try {
         const params = new URLSearchParams({
-          limit: "12",
+          limit: "50",
           sortBy: "startDate",
           sortOrder: "asc",
         })
 
-        // Combine keyword + location into search if no structured city/country selected
         const searchTerms = [searchQuery, (!cityFilter && locationFilter) ? locationFilter : ""].filter(Boolean).join(" ").trim()
-        if (searchTerms) {
-          params.set("search", searchTerms)
-        }
-        if (cityFilter) {
-          params.set("city", cityFilter)
-        }
-        if (countryFilter) {
-          params.set("country", countryFilter)
-        }
+        if (searchTerms) params.set("search", searchTerms)
+        if (cityFilter) params.set("city", cityFilter)
+        if (countryFilter) params.set("country", countryFilter)
 
         const response = await apiClient<ApiEvent[]>(`/api/events?${params.toString()}`, {
           skipAuth: true,
@@ -168,53 +245,40 @@ export default function Home() {
         }
       } finally {
         clearTimeout(timeoutId)
-        if (!controller.signal.aborted) {
-          setIsLoading(false)
-        }
+        if (!controller.signal.aborted) setIsLoading(false)
       }
     }
 
     fetchEvents()
-
-    return () => {
-      controller.abort()
-      clearTimeout(timeoutId)
-    }
+    return () => { controller.abort(); clearTimeout(timeoutId) }
   }, [searchQuery, locationFilter, cityFilter, countryFilter, prefsLoaded])
 
-  // Fetch featured events
+  // Fetch featured (promoted) events only — no fallback
   useEffect(() => {
     const controller = new AbortController()
 
     async function fetchFeatured() {
       try {
-        const response = await apiClient<ApiEvent[]>("/api/events?featured=true&limit=3", {
+        const response = await apiClient<ApiEvent[]>("/api/events?featured=true&limit=10", {
           skipAuth: true,
           signal: controller.signal,
         })
-        if (!controller.signal.aborted) {
-          setFeaturedEvents(response)
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          console.error("Failed to fetch featured events:", error)
-          setFeaturedEvents([])
-        }
+        if (!controller.signal.aborted) setFeaturedEvents(response)
+      } catch {
+        if (!controller.signal.aborted) setFeaturedEvents([])
       }
     }
 
     fetchFeatured()
-
     return () => controller.abort()
   }, [])
 
-  // Filter events client-side for category (until categories are in DB)
+  // Filter + sort events client-side
   const filteredEvents = events.filter((event) => {
     if (filterType === "all") return true
     return event.category?.slug === filterType ||
            event.category?.name?.toLowerCase() === filterType.toLowerCase()
   }).sort((a, b) => {
-    // If user prefers free events first, sort them to the top
     if (showFreeFirst) {
       if (a.isFree && !b.isFree) return -1
       if (!a.isFree && b.isFree) return 1
@@ -222,9 +286,16 @@ export default function Home() {
     return 0
   })
 
-  // Use first 3 events as featured if no featured events returned
-  const displayFeaturedEvents = featuredEvents.length > 0 ? featuredEvents : events.slice(0, 3)
-  const upcomingEvents = filteredEvents.slice(0, 6)
+  const visibleEvents = filteredEvents.slice(0, visibleCount)
+  const hasMore = visibleCount < filteredEvents.length
+
+  const handleLoadMore = () => {
+    setLoadingMore(true)
+    setTimeout(() => {
+      setVisibleCount(prev => prev + EVENTS_PER_PAGE)
+      setLoadingMore(false)
+    }, 300)
+  }
 
   const hasActiveFilters = searchQuery || locationFilter || filterType !== "all"
 
@@ -241,43 +312,26 @@ export default function Home() {
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero Section with Background Carousel */}
+        {/* Hero Section */}
         <section className="relative py-16 md:py-20 px-4 overflow-hidden">
-          {/* Background Images with Fade Transition */}
           <div className="absolute inset-0">
             {heroImages.map((image, index) => (
               <div
                 key={index}
                 className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
-                style={{
-                  opacity: currentImageIndex === index ? 1 : 0,
-                }}
+                style={{ opacity: currentImageIndex === index ? 1 : 0 }}
               >
-                <Image
-                  src={image}
-                  alt={`Hero background ${index + 1}`}
-                  fill
-                  priority={index === 0}
-                  quality={75}
-                  sizes="100vw"
-                  className="object-cover"
-                />
+                <Image src={image} alt={`Hero background ${index + 1}`} fill priority={index === 0} quality={75} sizes="100vw" className="object-cover" />
               </div>
             ))}
-            {/* Dark Overlay for Text Readability */}
             <div className="absolute inset-0 bg-black/60" />
-            {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/70 via-primary/60 to-primary/50" />
           </div>
 
-          {/* Hero Content */}
           <div className="relative max-w-6xl mx-auto text-center text-primary-foreground">
             <h1 className="text-4xl md:text-6xl font-bold mb-4 md:mb-6 text-balance">Discover Amazing Events</h1>
-            <p className="text-lg md:text-2xl mb-8 opacity-90 text-balance">
-              Find, create, and manage events that matter to you
-            </p>
+            <p className="text-lg md:text-2xl mb-8 opacity-90 text-balance">Find, create, and manage events that matter to you</p>
 
-            {/* Search Bar */}
             <div className="mb-8 relative z-20">
               <SearchBar
                 onSearch={(keyword, location, city, country) => {
@@ -285,7 +339,6 @@ export default function Home() {
                   setLocationFilter(location)
                   setCityFilter(city || "")
                   setCountryFilter(country || "")
-                  // Scroll to results after a brief delay for state to update
                   setTimeout(() => {
                     resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
                   }, 100)
@@ -309,15 +362,12 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Carousel Indicators */}
             <div className="flex justify-center gap-2 mt-8">
               {heroImages.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    currentImageIndex === index ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/70'
-                  }`}
+                  className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === index ? 'bg-white w-8' : 'bg-white/50 hover:bg-white/70'}`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
@@ -330,30 +380,22 @@ export default function Home() {
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div>
-                <div className="flex items-center justify-center gap-2 text-primary mb-2">
-                  <Calendar size={24} />
-                </div>
+                <div className="flex items-center justify-center gap-2 text-primary mb-2"><Calendar size={24} /></div>
                 <div className="text-3xl font-bold text-foreground">{platformStats.events || totalEvents || events.length}</div>
                 <div className="text-sm text-muted-foreground">Active Events</div>
               </div>
               <div>
-                <div className="flex items-center justify-center gap-2 text-primary mb-2">
-                  <Users size={24} />
-                </div>
-                <div className="text-3xl font-bold text-foreground">{platformStats.attendees > 0 ? platformStats.attendees.toLocaleString() : "0"}</div>
+                <div className="flex items-center justify-center gap-2 text-primary mb-2"><Users size={24} /></div>
+                <div className="text-3xl font-bold text-foreground">{platformStats.attendees.toLocaleString()}</div>
                 <div className="text-sm text-muted-foreground">Total Attendees</div>
               </div>
               <div>
-                <div className="flex items-center justify-center gap-2 text-primary mb-2">
-                  <TrendingUp size={24} />
-                </div>
-                <div className="text-3xl font-bold text-foreground">{platformStats.organizers > 0 ? platformStats.organizers.toLocaleString() : "0"}</div>
+                <div className="flex items-center justify-center gap-2 text-primary mb-2"><TrendingUp size={24} /></div>
+                <div className="text-3xl font-bold text-foreground">{platformStats.organizers.toLocaleString()}</div>
                 <div className="text-sm text-muted-foreground">Organizers</div>
               </div>
               <div>
-                <div className="flex items-center justify-center gap-2 text-primary mb-2">
-                  <Music size={24} />
-                </div>
+                <div className="flex items-center justify-center gap-2 text-primary mb-2"><Music size={24} /></div>
                 <div className="text-3xl font-bold text-foreground">{categories.length - 1}</div>
                 <div className="text-sm text-muted-foreground">Categories</div>
               </div>
@@ -366,8 +408,8 @@ export default function Home() {
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold mb-8 text-foreground text-center">Browse by Category</h2>
             <div className="relative">
-              {/* Left fade indicator (mobile only) */}
-              <div className="absolute left-0 top-0 bottom-2 w-6 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none md:hidden" />
+              {/* Left fade — transparent so it matches any bg */}
+              <div className="absolute left-0 top-0 bottom-2 w-8 bg-gradient-to-r from-white dark:from-background to-transparent z-10 pointer-events-none md:hidden" />
 
               <div className="flex md:grid md:grid-cols-4 lg:grid-cols-9 gap-3 md:gap-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
                 {categories.map((cat) => {
@@ -391,8 +433,8 @@ export default function Home() {
                 })}
               </div>
 
-              {/* Right fade indicator (mobile only) */}
-              <div className="absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none md:hidden" />
+              {/* Right fade */}
+              <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-white dark:from-background to-transparent z-10 pointer-events-none md:hidden" />
             </div>
           </div>
         </section>
@@ -405,78 +447,87 @@ export default function Home() {
               {searchQuery && (
                 <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
                   &quot;{searchQuery}&quot;
-                  <button onClick={() => setSearchQuery("")} className="hover:bg-primary/20 rounded-full p-0.5">
-                    <X size={14} />
-                  </button>
+                  <button onClick={() => setSearchQuery("")} className="hover:bg-primary/20 rounded-full p-0.5"><X size={14} /></button>
                 </span>
               )}
               {locationFilter && (
                 <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
                   <MapPin size={14} />
                   {locationFilter}
-                  <button onClick={() => { setLocationFilter(""); setCityFilter(""); setCountryFilter("") }} className="hover:bg-primary/20 rounded-full p-0.5">
-                    <X size={14} />
-                  </button>
+                  <button onClick={() => { setLocationFilter(""); setCityFilter(""); setCountryFilter("") }} className="hover:bg-primary/20 rounded-full p-0.5"><X size={14} /></button>
                 </span>
               )}
               {filterType !== "all" && (
                 <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
                   {categories.find(c => c.id === filterType)?.name}
-                  <button onClick={() => setFilterType("all")} className="hover:bg-primary/20 rounded-full p-0.5">
-                    <X size={14} />
-                  </button>
+                  <button onClick={() => setFilterType("all")} className="hover:bg-primary/20 rounded-full p-0.5"><X size={14} /></button>
                 </span>
               )}
-              <button onClick={clearAllFilters} className="text-xs text-muted-foreground hover:text-foreground underline ml-2">
-                Clear all
-              </button>
+              <button onClick={clearAllFilters} className="text-xs text-muted-foreground hover:text-foreground underline ml-2">Clear all</button>
             </div>
           </section>
         )}
 
-        {/* Featured Events */}
-        <section className="py-16 px-4" ref={resultsRef}>
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl font-bold mb-8 text-foreground">Featured Events</h2>
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3].map((i) => <EventCardSkeleton key={i} />)}
+        {/* Featured / Promoted Events — only shown when there are promoted events */}
+        {(isLoading || featuredEvents.length > 0) && (
+          <section className="py-16 px-4" ref={resultsRef}>
+            <div className="max-w-6xl mx-auto">
+              <div className="flex items-center gap-3 mb-8">
+                <h2 className="text-3xl font-bold text-foreground">Featured Events</h2>
+                <span className="px-3 py-1 bg-primary/10 text-primary text-sm font-semibold rounded-full">Promoted</span>
               </div>
-            ) : displayFeaturedEvents.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayFeaturedEvents.map((event) => (
-                  <EventCard key={event.id} event={apiEventToLegacy(event)} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No featured events at the moment.
-              </div>
-            )}
-          </div>
-        </section>
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((i) => <EventCardSkeleton key={i} />)}
+                </div>
+              ) : (
+                <FeaturedSlider events={featuredEvents} />
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Upcoming Events */}
-        <section className="py-16 px-4 bg-secondary/30">
+        <section className={`py-16 px-4 bg-secondary/30 ${featuredEvents.length === 0 && !isLoading ? "" : ""}`} ref={featuredEvents.length === 0 ? resultsRef : undefined}>
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-bold text-foreground">
                 {filterType === "all" ? "Upcoming Events" : `${categories.find(c => c.id === filterType)?.name} Events`}
               </h2>
               <div className="text-sm text-muted-foreground">
-                {upcomingEvents.length} {upcomingEvents.length === 1 ? "event" : "events"} found
+                {filteredEvents.length} {filteredEvents.length === 1 ? "event" : "events"} found
               </div>
             </div>
+
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => <EventCardSkeleton key={i} />)}
               </div>
-            ) : upcomingEvents.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {upcomingEvents.map((event) => (
-                  <EventCard key={event.id} event={apiEventToLegacy(event)} />
-                ))}
-              </div>
+            ) : visibleEvents.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {visibleEvents.map((event) => (
+                    <EventCard key={event.id} event={apiEventToLegacy(event)} />
+                  ))}
+                </div>
+
+                {/* Load More */}
+                {hasMore && (
+                  <div className="flex justify-center mt-10">
+                    <button
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center gap-2"
+                    >
+                      {loadingMore ? (
+                        <><Loader2 size={18} className="animate-spin" /> Loading...</>
+                      ) : (
+                        `Load More (${filteredEvents.length - visibleCount} remaining)`
+                      )}
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-16 bg-card rounded-xl border border-border">
                 <div className="max-w-md mx-auto">
@@ -492,10 +543,7 @@ export default function Home() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     {hasActiveFilters && (
-                      <button
-                        onClick={clearAllFilters}
-                        className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
-                      >
+                      <button onClick={clearAllFilters} className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors">
                         Clear Filters
                       </button>
                     )}

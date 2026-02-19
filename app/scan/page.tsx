@@ -139,8 +139,10 @@ export default function ScanPage() {
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (ticketNumber.trim()) {
-      handleScan(undefined, ticketNumber.trim())
+    let normalized = ticketNumber.trim().toUpperCase()
+    if (normalized.startsWith("#")) normalized = normalized.slice(1)
+    if (normalized) {
+      handleScan(undefined, normalized)
     }
   }
 
@@ -151,21 +153,34 @@ export default function ScanPage() {
       const qrScanner = new Html5Qrcode("qr-reader")
       html5QrCodeRef.current = qrScanner
 
-      await qrScanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          handleScan(decodedText)
-          // Don't stop — allow continuous scanning
+      // Dynamic qrbox so it never exceeds the video feed dimensions
+      const config = {
+        fps: 10,
+        qrbox: (w: number, h: number) => {
+          const size = Math.min(250, Math.floor(Math.min(w, h) * 0.8))
+          return { width: size, height: size }
         },
-        () => {
-          // Ignore QR scan failure (happens every frame without a QR code)
-        }
-      )
+      }
+      const onSuccess = (decodedText: string) => handleScan(decodedText)
+      const onError = () => { /* ignore per-frame scan failures */ }
+
+      // Try rear camera first (mobile), fall back to any available camera (desktop)
+      try {
+        await qrScanner.start({ facingMode: "environment" }, config, onSuccess, onError)
+      } catch {
+        await qrScanner.start({ facingMode: "user" }, config, onSuccess, onError)
+      }
       setCameraActive(true)
     } catch (err) {
       console.error("Camera error:", err)
-      setCameraError("Could not access camera. Please check permissions or use manual entry.")
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.toLowerCase().includes("permission") || msg.toLowerCase().includes("denied")) {
+        setCameraError("Camera permission denied. Please allow camera access in your browser settings.")
+      } else if (msg.toLowerCase().includes("https") || msg.toLowerCase().includes("secure")) {
+        setCameraError("Camera requires a secure (HTTPS) connection.")
+      } else {
+        setCameraError("Could not access camera. Please check permissions or use manual entry.")
+      }
     }
   }, [handleScan])
 
@@ -305,7 +320,7 @@ export default function ScanPage() {
                     type="text"
                     value={ticketNumber}
                     onChange={(e) => setTicketNumber(e.target.value)}
-                    placeholder="Enter ticket number..."
+                    placeholder="e.g. TKT-A3F8C2 or #TKT-A3F8C2"
                     className="flex-1 px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <button

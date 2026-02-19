@@ -9,6 +9,7 @@ import Footer from "@/components/footer"
 import { apiClient, ApiError } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
 import type { ApiTicket } from "@/lib/types"
+import QRCode from "react-qr-code"
 import {
   ArrowLeft,
   Calendar,
@@ -139,7 +140,7 @@ export default function TicketDetailPage() {
   const handleDownloadPdf = async () => {
     if (!ticket) return
     const { generateTicketPdf } = await import("@/lib/generate-ticket-pdf")
-    generateTicketPdf(ticket)
+    await generateTicketPdf(ticket)
   }
 
   const formatDate = (dateStr: string) => {
@@ -241,13 +242,9 @@ export default function TicketDetailPage() {
               {/* QR Code */}
               <div className="bg-card border border-border rounded-lg p-6 flex flex-col items-center">
                 {ticket.qrCode ? (
-                  <Image
-                    src={ticket.qrCode}
-                    alt="Ticket QR Code"
-                    width={200}
-                    height={200}
-                    className="rounded-lg"
-                  />
+                  <div className="bg-white p-3 rounded-lg">
+                    <QRCode value={ticket.qrCode} size={180} />
+                  </div>
                 ) : (
                   <div className="w-48 h-48 bg-muted rounded-lg flex items-center justify-center">
                     <span className="text-sm text-muted-foreground">No QR Code</span>

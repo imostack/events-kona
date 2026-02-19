@@ -33,7 +33,11 @@ async function postHandler(request: NextRequest & { user: TokenPayload }) {
   const validation = await validateBody(request, scanTicketSchema);
   if (!validation.success) return validation.response;
 
-  const { qrCode, ticketNumber, eventId, action } = validation.data;
+  const { qrCode, eventId, action } = validation.data;
+  // Normalize ticket number: strip leading '#' and uppercase
+  const ticketNumber = validation.data.ticketNumber
+    ? validation.data.ticketNumber.replace(/^#/, "").toUpperCase().trim()
+    : undefined;
 
   // Verify event exists and user has permission
   const event = await prisma.event.findUnique({

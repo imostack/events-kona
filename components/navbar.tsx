@@ -95,12 +95,14 @@ export default function Navbar() {
                         <span className="text-sm font-medium">Create Event</span>
                       </div>
                     </Link>
-                    <Link href="/scan" onClick={() => setShowUserMenu(false)}>
-                      <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
-                        <QrCode size={18} className="text-muted-foreground" />
-                        <span className="text-sm font-medium">Scan Tickets</span>
-                      </div>
-                    </Link>
+                    {(user?.role === "ORGANIZER" || user?.role === "ADMIN") && (
+                      <Link href="/scan" onClick={() => setShowUserMenu(false)}>
+                        <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
+                          <QrCode size={18} className="text-muted-foreground" />
+                          <span className="text-sm font-medium">Scan Tickets</span>
+                        </div>
+                      </Link>
+                    )}
                     <Link href="/settings" onClick={() => setShowUserMenu(false)}>
                       <div className="px-4 py-2 hover:bg-muted transition-colors cursor-pointer flex items-center gap-3">
                         <Settings size={18} className="text-muted-foreground" />
@@ -182,11 +184,13 @@ export default function Navbar() {
                     Create Event
                   </div>
                 </Link>
-                <Link href="/scan" onClick={() => setIsOpen(false)}>
-                  <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
-                    Scan Tickets
-                  </div>
-                </Link>
+                {(user?.role === "ORGANIZER" || user?.role === "ADMIN") && (
+                  <Link href="/scan" onClick={() => setIsOpen(false)}>
+                    <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
+                      Scan Tickets
+                    </div>
+                  </Link>
+                )}
                 <Link href="/settings" onClick={() => setIsOpen(false)}>
                   <div className="block text-foreground hover:text-primary transition-colors font-semibold py-2">
                    General Settings
