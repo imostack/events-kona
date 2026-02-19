@@ -9,8 +9,12 @@ export const dynamic = "force-dynamic";
 
 export const POST = withAuth(async (request: NextRequest & { user: TokenPayload }) => {
   try {
-    // Verify Cloudinary is configured
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    // Read and normalize env vars (trim + strip surrounding quotes — Vercel can store these with spaces/quotes)
+    const cloudName = (process.env.CLOUDINARY_CLOUD_NAME ?? "").trim().replace(/^["']|["']$/g, "");
+    const apiKey = (process.env.CLOUDINARY_API_KEY ?? "").trim().replace(/^["']|["']$/g, "");
+    const apiSecret = (process.env.CLOUDINARY_API_SECRET ?? "").trim().replace(/^["']|["']$/g, "");
+
+    if (!cloudName || !apiKey || !apiSecret) {
       return errorResponse({
         message: "Image upload service is not configured. Missing Cloudinary credentials.",
         status: 503,
@@ -20,9 +24,9 @@ export const POST = withAuth(async (request: NextRequest & { user: TokenPayload 
 
     // Configure Cloudinary per-request (ensures env vars are read at runtime)
     cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
     });
 
     // Get the form data
@@ -101,10 +105,20 @@ export const POST = withAuth(async (request: NextRequest & { user: TokenPayload 
 // Delete an image from Cloudinary
 export const DELETE = withAuth(async (request: NextRequest & { user: TokenPayload }) => {
   try {
+    const cloudName = (process.env.CLOUDINARY_CLOUD_NAME ?? "").trim().replace(/^["']|["']$/g, "");
+    const apiKey = (process.env.CLOUDINARY_API_KEY ?? "").trim().replace(/^["']|["']$/g, "");
+    const apiSecret = (process.env.CLOUDINARY_API_SECRET ?? "").trim().replace(/^["']|["']$/g, "");
+    if (!cloudName || !apiKey || !apiSecret) {
+      return errorResponse({
+        message: "Image upload service is not configured. Missing Cloudinary credentials.",
+        status: 503,
+        code: "UPLOAD_NOT_CONFIGURED",
+      });
+    }
     cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
     });
 
     const { searchParams } = new URL(request.url);
