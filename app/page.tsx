@@ -7,22 +7,29 @@ import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import SearchBar from "@/components/search-bar"
 import EventCard from "@/components/event-card"
-import { Search, Plus, Music, Briefcase, Utensils, Palette, Trophy, Cpu, GraduationCap, Calendar, Users, TrendingUp, X, MapPin, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { Search, Plus, Music, Briefcase, Utensils, Palette, Trophy, Cpu, GraduationCap, Calendar, Users, TrendingUp, X, MapPin, ChevronLeft, ChevronRight, Loader2, BookOpen, Laugh, Activity, Shirt, Gift, Baby, Film } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api-client"
 import type { ApiEvent } from "@/lib/types"
 import { apiEventToLegacy } from "@/lib/types"
 
 const categories = [
-  { id: "all", name: "All Events", icon: Calendar, color: "bg-blue-500" },
-  { id: "music", name: "Music", icon: Music, color: "bg-purple-500" },
-  { id: "business", name: "Business", icon: Briefcase, color: "bg-indigo-500" },
-  { id: "food", name: "Food & Drink", icon: Utensils, color: "bg-orange-500" },
-  { id: "arts", name: "Arts", icon: Palette, color: "bg-pink-500" },
-  { id: "sports", name: "Sports", icon: Trophy, color: "bg-green-500" },
-  { id: "tech", name: "Technology", icon: Cpu, color: "bg-cyan-500" },
-  { id: "education", name: "Education", icon: GraduationCap, color: "bg-amber-500" },
-  { id: "religious", name: "Religious", icon: Calendar, color: "bg-rose-500" }
+  { id: "all",           name: "All Events",          icon: Calendar,      color: "bg-blue-500" },
+  { id: "music",         name: "Music",               icon: Music,         color: "bg-purple-500" },
+  { id: "business",      name: "Business",            icon: Briefcase,     color: "bg-indigo-500" },
+  { id: "food",          name: "Food & Drink",        icon: Utensils,      color: "bg-orange-500" },
+  { id: "arts",          name: "Arts & Culture",      icon: Palette,       color: "bg-pink-500" },
+  { id: "sports",        name: "Sports",              icon: Trophy,        color: "bg-green-500" },
+  { id: "tech",          name: "Technology",          icon: Cpu,           color: "bg-cyan-500" },
+  { id: "education",     name: "Education",           icon: GraduationCap, color: "bg-amber-500" },
+  { id: "religious",     name: "Religious",           icon: BookOpen,      color: "bg-rose-500" },
+  { id: "entertainment", name: "Entertainment",       icon: Laugh,         color: "bg-violet-500" },
+  { id: "health",        name: "Health & Wellness",   icon: Activity,      color: "bg-emerald-500" },
+  { id: "fashion",       name: "Fashion & Lifestyle", icon: Shirt,         color: "bg-fuchsia-500" },
+  { id: "charity",       name: "Charity & Causes",    icon: Gift,          color: "bg-red-500" },
+  { id: "family",        name: "Family & Kids",       icon: Baby,          color: "bg-amber-400" },
+  { id: "film",          name: "Film & Media",        icon: Film,          color: "bg-blue-600" },
+  { id: "networking",    name: "Networking",          icon: Users,         color: "bg-sky-500" },
 ]
 
 // Hero background images

@@ -18,20 +18,27 @@ async function main() {
   // Categories
   // =====================
   const categories = [
-    { name: "Music", slug: "music", icon: "Music", color: "#8b5cf6", sortOrder: 0 },
-    { name: "Business", slug: "business", icon: "Briefcase", color: "#3b82f6", sortOrder: 1 },
-    { name: "Food & Drink", slug: "food", icon: "UtensilsCrossed", color: "#f97316", sortOrder: 2 },
-    { name: "Arts", slug: "arts", icon: "Palette", color: "#ec4899", sortOrder: 3 },
-    { name: "Sports", slug: "sports", icon: "Trophy", color: "#22c55e", sortOrder: 4 },
-    { name: "Technology", slug: "tech", icon: "Cpu", color: "#06b6d4", sortOrder: 5 },
-    { name: "Education", slug: "education", icon: "GraduationCap", color: "#f59e0b", sortOrder: 6 },
-    { name: "Religious", slug: "religious", icon: "Heart", color: "#f43f5e", sortOrder: 7 },
+    { name: "Music",               slug: "music",         icon: "Music",         color: "#8b5cf6", sortOrder: 0 },
+    { name: "Business",            slug: "business",      icon: "Briefcase",     color: "#3b82f6", sortOrder: 1 },
+    { name: "Food & Drink",        slug: "food",          icon: "Utensils",      color: "#f97316", sortOrder: 2 },
+    { name: "Arts & Culture",      slug: "arts",          icon: "Palette",       color: "#ec4899", sortOrder: 3 },
+    { name: "Sports",              slug: "sports",        icon: "Trophy",        color: "#22c55e", sortOrder: 4 },
+    { name: "Technology",          slug: "tech",          icon: "Cpu",           color: "#06b6d4", sortOrder: 5 },
+    { name: "Education",           slug: "education",     icon: "GraduationCap", color: "#f59e0b", sortOrder: 6 },
+    { name: "Religious",           slug: "religious",     icon: "BookOpen",      color: "#f43f5e", sortOrder: 7 },
+    { name: "Entertainment",       slug: "entertainment", icon: "Laugh",         color: "#a855f7", sortOrder: 8 },
+    { name: "Health & Wellness",   slug: "health",        icon: "Activity",      color: "#10b981", sortOrder: 9 },
+    { name: "Fashion & Lifestyle", slug: "fashion",       icon: "Shirt",         color: "#f472b6", sortOrder: 10 },
+    { name: "Charity & Causes",    slug: "charity",       icon: "Gift",          color: "#ef4444", sortOrder: 11 },
+    { name: "Family & Kids",       slug: "family",        icon: "Baby",          color: "#fb923c", sortOrder: 12 },
+    { name: "Film & Media",        slug: "film",          icon: "Film",          color: "#6366f1", sortOrder: 13 },
+    { name: "Networking",          slug: "networking",    icon: "Users",         color: "#0ea5e9", sortOrder: 14 },
   ];
 
   for (const cat of categories) {
     await prisma.category.upsert({
       where: { slug: cat.slug },
-      update: {},
+      update: { name: cat.name, icon: cat.icon, color: cat.color, sortOrder: cat.sortOrder },
       create: cat,
     });
   }
