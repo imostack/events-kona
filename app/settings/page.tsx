@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient, ApiError, setTokens } from "@/lib/api-client"
+import { PageSkeleton, FormSkeleton } from "@/components/page-skeleton"
 
 type SettingsTab = "account" | "organizer" | "password" | "notifications" | "payout" | "preferences" | "privacy"
 
@@ -254,6 +255,27 @@ export default function SettingsPage() {
       router.push("/login")
     }
   }, [user, authLoading, router])
+
+  // Pre-populate form immediately from auth context so the page renders with data right away
+  useEffect(() => {
+    if (user) {
+      setAccountData(prev => ({
+        ...prev,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        profileImageUrl: user.avatarUrl || "",
+      }))
+      const isOrg = user.role === "ORGANIZER" || user.role === "ADMIN"
+      setOrganizerData(prev => ({
+        ...prev,
+        isOrganizer: isOrg,
+        organizerName: user.organizerName || "",
+        organizerSlug: user.organizerSlug || "",
+      }))
+      setWasOriginallyOrganizer(isOrg)
+    }
+  }, [user])
 
   useEffect(() => {
     if (user) {
@@ -709,17 +731,8 @@ export default function SettingsPage() {
     }
   }
 
-  if (authLoading || !user || isDataLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="animate-spin text-primary" size={32} />
-          <span className="ml-3 text-muted-foreground">Loading settings...</span>
-        </div>
-        <Footer />
-      </div>
-    )
+  if (authLoading || !user) {
+    return <PageSkeleton variant="settings" />
   }
 
   return (
@@ -791,9 +804,8 @@ export default function SettingsPage() {
                   )}
 
                   {isDataLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="animate-spin text-primary" size={32} />
-                      <span className="ml-3 text-muted-foreground">Loading your settings...</span>
+                    <div className="py-6">
+                      <FormSkeleton rows={5} />
                     </div>
                   ) : (
                     <>

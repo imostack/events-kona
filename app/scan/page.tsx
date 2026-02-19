@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
+import { PageSkeleton } from "@/components/page-skeleton"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api-client"
 import {
@@ -213,15 +214,7 @@ export default function ScanPage() {
   }
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="animate-spin text-primary" size={48} />
-        </main>
-        <Footer />
-      </div>
-    )
+    return <PageSkeleton variant="default" />
   }
 
   if (!isAuthenticated) return null

@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation"
 import { usePaystackPayment } from "react-paystack"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
+import { PageSkeleton } from "@/components/page-skeleton"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient } from "@/lib/api-client"
 import { formatPrice, type Currency } from "@/lib/currency-utils"
@@ -237,15 +238,7 @@ export default function OrderDetailPage() {
   }
 
   if (authLoading || isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="animate-spin text-primary" size={48} />
-        </main>
-        <Footer />
-      </div>
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   if (error || !order) {

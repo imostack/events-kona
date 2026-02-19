@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
+import { PageSkeleton } from "@/components/page-skeleton"
 import dynamic from "next/dynamic"
 import { apiClient, ApiError } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
@@ -99,18 +100,7 @@ export default function EventDetailsPage() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="animate-spin text-primary mx-auto mb-4" size={48} />
-            <p className="text-muted-foreground">Loading event...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    )
+    return <PageSkeleton variant="detail" />
   }
 
   // Error/not found state
