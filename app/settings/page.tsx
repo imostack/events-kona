@@ -192,7 +192,8 @@ export default function SettingsPage() {
       const socials = (data.organizerSocials as Record<string, string>) || {}
       setOrganizerData(prev => ({
         ...prev,
-        isOrganizer: isOrg,
+        // Preserve true if the user clicked "Set Up Organizer Profile" before the API responded
+        isOrganizer: isOrg || prev.isOrganizer,
         organizerName: data.organizerName || "",
         organizerSlug: data.organizerSlug || "",
         bio: data.organizerBio || "",
