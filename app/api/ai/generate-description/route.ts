@@ -36,7 +36,7 @@ async function handler(
     });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = (process.env.GEMINI_API_KEY ?? "").trim().replace(/^["']|["']$/g, "");
   if (!apiKey) {
     return errorResponse({
       message: "AI service is not configured. Please add GEMINI_API_KEY to your environment.",
@@ -92,7 +92,6 @@ Write the improved three-paragraph description now.`;
   }
 
   try {
-    // Generate content with Gemini 3's generation config
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       generationConfig: {
@@ -102,8 +101,30 @@ Write the improved three-paragraph description now.`;
       },
     });
 
-    const response = await result.response;
-    const description = response.text().trim();
+    const response = result.response;
+
+    // Handle blocked or empty response (e.g. safety filters)
+    if (!response.candidates || response.candidates.length === 0) {
+      const blockReason = response.promptFeedback?.blockReason ?? "No content returned";
+      console.error("Gemini API: no candidates", { blockReason, feedback: response.promptFeedback });
+      return errorResponse({
+        message: "AI could not generate a description (content may have been filtered). Try a different title or category.",
+        status: 500,
+        code: "AI_BLOCKED",
+      });
+    }
+
+    let description: string;
+    try {
+      description = response.text().trim();
+    } catch (textError) {
+      console.error("Gemini API: response.text() failed", textError);
+      return errorResponse({
+        message: "AI returned an empty or invalid response. Please try again.",
+        status: 500,
+        code: "AI_EMPTY",
+      });
+    }
 
     if (!description) {
       return errorResponse({
@@ -119,11 +140,26 @@ Write the improved three-paragraph description now.`;
           ? "Description generated successfully"
           : "Description enhanced successfully",
     });
-  } catch (error) {
-    console.error("Gemini API error:", error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error("Gemini API error:", err.message, err);
+
+    // Surface a safe hint so user can fix config (e.g. invalid key, quota, model)
+    const msg = err.message ?? "";
+    const isKeyError = /API_KEY|api key|invalid.*key|401|403/i.test(msg);
+    const isQuota = /quota|rate limit|429|resource exhausted/i.test(msg);
+    const isModel = /model|404|not found/i.test(msg);
+
+    let userMessage = "Failed to generate description. Please try again.";
+    if (isKeyError) userMessage = "AI service key is invalid or expired. Check GEMINI_API_KEY in Vercel.";
+    else if (isQuota) userMessage = "AI usage limit reached. Try again later or check your Gemini API quota.";
+    else if (isModel) userMessage = "AI model is temporarily unavailable. Please try again later.";
+
     return errorResponse({
-      message: "Failed to generate description. Please try again.",
+      message: userMessage,
       status: 500,
+      code: "AI_ERROR",
+      details: process.env.EXPOSE_SERVER_ERRORS === "1" ? err.message : undefined,
     });
   }
 }
