@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { apiClient, ApiError, setTokens } from "@/lib/api-client"
-import { PageSkeleton, FormSkeleton } from "@/components/page-skeleton"
+import { PageSkeleton } from "@/components/page-skeleton"
 
 type SettingsTab = "account" | "organizer" | "password" | "notifications" | "payout" | "preferences" | "privacy"
 
@@ -129,10 +129,29 @@ export default function SettingsPage() {
   // Track if user was originally an organizer (from DB) vs just setting up locally
   const [wasOriginallyOrganizer, setWasOriginallyOrganizer] = useState(false)
 
-  // Load user data from API
-  const loadUserData = useCallback(async () => {
+  // Load user data — phase 1 pre-populates immediately from auth context (no API),
+  // phase 2 silently refreshes with full server data in the background.
+  const loadUserData = useCallback(async (currentUser: NonNullable<typeof user>) => {
+    // Phase 1: populate from auth context synchronously — unblocks the page instantly
+    const isOrgCtx = currentUser.role === "ORGANIZER" || currentUser.role === "ADMIN"
+    setAccountData(prev => ({
+      ...prev,
+      firstName: currentUser.firstName || "",
+      lastName: currentUser.lastName || "",
+      email: currentUser.email || "",
+      profileImageUrl: currentUser.avatarUrl || "",
+    }))
+    setOrganizerData(prev => ({
+      ...prev,
+      isOrganizer: isOrgCtx,
+      organizerName: currentUser.organizerName || "",
+      organizerSlug: currentUser.organizerSlug || "",
+    }))
+    setWasOriginallyOrganizer(isOrgCtx)
+    setIsDataLoading(false) // unblock the page — data from auth context is enough to render
+
+    // Phase 2: background refresh with complete server data (phone, bio, socials, prefs…)
     try {
-      setIsDataLoading(true)
       const data = await apiClient<{
         id: string
         email: string
@@ -152,17 +171,15 @@ export default function SettingsPage() {
         organizerSocials: Record<string, string> | null
       }>("/api/auth/onboarding")
 
-      // Populate account data
       setAccountData(prev => ({
         ...prev,
-        firstName: data.firstName || "",
-        lastName: data.lastName || "",
-        email: data.email || "",
+        firstName: data.firstName || prev.firstName,
+        lastName: data.lastName || prev.lastName,
+        email: data.email || prev.email,
         phone: data.phone || "",
-        profileImageUrl: data.avatarUrl || "",
+        profileImageUrl: data.avatarUrl || prev.profileImageUrl,
       }))
 
-      // Sync auth context with latest server data
       updateUser({
         role: data.role,
         organizerName: data.organizerName || null,
@@ -170,7 +187,6 @@ export default function SettingsPage() {
         avatarUrl: data.avatarUrl || null,
       })
 
-      // Populate organizer data
       const isOrg = data.role === "ORGANIZER" || data.role === "ADMIN"
       setWasOriginallyOrganizer(isOrg)
       const socials = (data.organizerSocials as Record<string, string>) || {}
@@ -187,7 +203,6 @@ export default function SettingsPage() {
         linkedin: socials.linkedin || "",
       }))
 
-      // Populate preferences from stored preferences JSON
       if (data.preferences) {
         const prefs = data.preferences as Record<string, unknown>
         setPreferences(prev => ({
@@ -199,7 +214,6 @@ export default function SettingsPage() {
           defaultCurrency: (prefs.defaultCurrency as string) || prev.defaultCurrency,
         }))
 
-        // Load payout account from preferences
         if (prefs.payoutAccount) {
           const payout = prefs.payoutAccount as Record<string, unknown>
           setPayoutData(prev => ({
@@ -214,7 +228,6 @@ export default function SettingsPage() {
           }))
         }
 
-        // Load privacy settings from preferences
         if (prefs.privacy) {
           const privacy = prefs.privacy as Record<string, unknown>
           setPrivacyData(prev => ({
@@ -228,7 +241,6 @@ export default function SettingsPage() {
         }
       }
 
-      // Populate notification settings
       if (data.notificationSettings) {
         const notifs = data.notificationSettings as Record<string, unknown>
         setNotifications(prev => ({
@@ -245,10 +257,8 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Failed to load user data:", error)
-    } finally {
-      setIsDataLoading(false)
     }
-  }, [])
+  }, [updateUser])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -256,30 +266,9 @@ export default function SettingsPage() {
     }
   }, [user, authLoading, router])
 
-  // Pre-populate form immediately from auth context so the page renders with data right away
   useEffect(() => {
     if (user) {
-      setAccountData(prev => ({
-        ...prev,
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
-        profileImageUrl: user.avatarUrl || "",
-      }))
-      const isOrg = user.role === "ORGANIZER" || user.role === "ADMIN"
-      setOrganizerData(prev => ({
-        ...prev,
-        isOrganizer: isOrg,
-        organizerName: user.organizerName || "",
-        organizerSlug: user.organizerSlug || "",
-      }))
-      setWasOriginallyOrganizer(isOrg)
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (user) {
-      loadUserData()
+      loadUserData(user)
     }
   }, [user, loadUserData])
 
@@ -474,7 +463,7 @@ export default function SettingsPage() {
         organizerSlug: organizerData.organizerSlug || organizerData.organizerName.toLowerCase().replace(/\s+/g, "-"),
       })
       setWasOriginallyOrganizer(true)
-      await loadUserData()
+      await loadUserData(user!)
 
       if (isFirstTime) {
         // First-time organizer: switch to account tab so success message is clearly visible
@@ -731,7 +720,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (authLoading || !user) {
+  if (authLoading || !user || isDataLoading) {
     return <PageSkeleton variant="settings" />
   }
 
@@ -803,12 +792,6 @@ export default function SettingsPage() {
                     </div>
                   )}
 
-                  {isDataLoading ? (
-                    <div className="py-6">
-                      <FormSkeleton rows={5} />
-                    </div>
-                  ) : (
-                    <>
                   {/* Account Info Tab */}
                   {activeTab === "account" && (
                     <div className="space-y-6">
@@ -1661,8 +1644,6 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     </div>
-                  )}
-                    </>
                   )}
                 </div>
               </div>
