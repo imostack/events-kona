@@ -48,9 +48,9 @@ async function handler(
   // Initialize Google Generative AI
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  // Use a widely available Gemini model for server-side generation
+  // Use a versioned model ID (gemini-1.5-flash is not found on v1beta; -002 is)
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-1.5-flash-002",
     systemInstruction: `You are an expert event copywriter. Write compelling event descriptions in plain text (no markdown, no bullet points, no headings).
 
 Structure: exactly three paragraphs separated by double line breaks.
