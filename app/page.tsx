@@ -160,7 +160,13 @@ export default function Home() {
   const [showFreeFirst, setShowFreeFirst] = useState(false)
   const [visibleCount, setVisibleCount] = useState(EVENTS_PER_PAGE)
   const [loadingMore, setLoadingMore] = useState(false)
+  // Sticky search bar state
+  const [showStickyBar, setShowStickyBar] = useState(false)
+  const [isBarExpanded, setIsBarExpanded] = useState(true)
+  const [stickyQuery, setStickyQuery] = useState("")
   const resultsRef = useRef<HTMLDivElement>(null)
+  const heroSectionRef = useRef<HTMLElement>(null)
+  const lastScrollYRef = useRef(0)
   const { user } = useAuth()
 
   // API state
@@ -213,6 +219,24 @@ export default function Home() {
     }, 8000)
     return () => clearInterval(interval)
   }, [])
+
+  // Sticky search bar: show once hero scrolls off screen, collapse on scroll-down / expand on scroll-up
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY
+      const goingDown = y > lastScrollYRef.current + 4
+      lastScrollYRef.current = y
+      const heroBottom = heroSectionRef.current?.getBoundingClientRect().bottom ?? 0
+      const pastHero = heroBottom < 0
+      setShowStickyBar(pastHero)
+      if (pastHero) setIsBarExpanded(!goingDown)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Keep sticky input in sync when search query is cleared externally
+  useEffect(() => { setStickyQuery(searchQuery) }, [searchQuery])
 
   // Fetch events
   useEffect(() => {
@@ -314,13 +338,74 @@ export default function Home() {
     setFilterType("all")
   }
 
+  const handleStickySearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSearchQuery(stickyQuery)
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100)
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
+      {/* Sticky collapsing search bar — slides in after hero scrolls off, collapses on scroll-down */}
+      <div
+        className={`fixed top-16 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-sm transition-all duration-300 ${
+          showStickyBar && isBarExpanded
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-full opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-4 py-2">
+          <form onSubmit={handleStickySearch} className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-3 py-2 min-w-0">
+              <Search size={16} className="text-muted-foreground shrink-0" />
+              <input
+                type="text"
+                value={stickyQuery}
+                onChange={e => setStickyQuery(e.target.value)}
+                placeholder="Search events…"
+                className="flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+              />
+              {stickyQuery && (
+                <button type="button" onClick={() => { setStickyQuery(""); setSearchQuery("") }}>
+                  <X size={14} className="text-muted-foreground hover:text-foreground" />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="shrink-0 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Search
+            </button>
+
+            {/* Active filter chips */}
+            {filterType !== "all" && (
+              <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary px-2.5 py-1.5 rounded-full whitespace-nowrap">
+                {categories.find(c => c.id === filterType)?.name}
+                <button type="button" onClick={() => setFilterType("all")} className="hover:opacity-70">
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {locationFilter && (
+              <span className="shrink-0 hidden md:flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary px-2.5 py-1.5 rounded-full whitespace-nowrap">
+                <MapPin size={12} />
+                {locationFilter}
+                <button type="button" onClick={() => { setLocationFilter(""); setCityFilter(""); setCountryFilter("") }} className="hover:opacity-70">
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+          </form>
+        </div>
+      </div>
+
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative py-16 md:py-20 px-4 overflow-hidden">
+        <section ref={heroSectionRef} className="relative py-16 md:py-20 px-4 overflow-hidden">
           <div className="absolute inset-0">
             {heroImages.map((image, index) => (
               <div
