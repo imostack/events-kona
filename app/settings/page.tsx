@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Navbar from "@/components/navbar"
@@ -128,6 +128,8 @@ export default function SettingsPage() {
   })
   // Track if user was originally an organizer (from DB) vs just setting up locally
   const [wasOriginallyOrganizer, setWasOriginallyOrganizer] = useState(false)
+  // Prevent loadUserData from re-running when user object reference changes (e.g. after updateUser)
+  const hasLoadedRef = useRef(false)
 
   // Load user data — phase 1 pre-populates immediately from auth context (no API),
   // phase 2 silently refreshes with full server data in the background.
@@ -179,13 +181,6 @@ export default function SettingsPage() {
         phone: data.phone || "",
         profileImageUrl: data.avatarUrl || prev.profileImageUrl,
       }))
-
-      updateUser({
-        role: data.role,
-        organizerName: data.organizerName || null,
-        organizerSlug: data.organizerSlug || null,
-        avatarUrl: data.avatarUrl || null,
-      })
 
       const isOrg = data.role === "ORGANIZER" || data.role === "ADMIN"
       setWasOriginallyOrganizer(isOrg)
@@ -259,7 +254,7 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Failed to load user data:", error)
     }
-  }, [updateUser])
+  }, [])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -268,7 +263,8 @@ export default function SettingsPage() {
   }, [user, authLoading, router])
 
   useEffect(() => {
-    if (user) {
+    if (user && !hasLoadedRef.current) {
+      hasLoadedRef.current = true
       loadUserData(user)
     }
   }, [user, loadUserData])
