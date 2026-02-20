@@ -124,10 +124,7 @@ export async function apiClient<T = unknown>(
   const json = await res.json();
 
   if (!res.ok || !json.success) {
-    let errorMsg = json.error?.message || json.message || "Request failed";
-    if (json.error?.details) {
-      errorMsg += ` (${json.error.details})`;
-    }
+    const errorMsg = json.error?.message || json.message || "Request failed";
     const errorCode = json.error?.code || "UNKNOWN_ERROR";
     throw new ApiError(errorMsg, res.status, errorCode);
   }

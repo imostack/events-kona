@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { validateBody } from "@/lib/validate";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -164,24 +165,39 @@ async function postHandler(request: NextRequest & { user: TokenPayload }) {
   if (data.organizerLogo !== undefined) updateData.organizerLogo = data.organizerLogo || null;
   if (data.organizerSocials !== undefined) updateData.organizerSocials = data.organizerSocials;
 
-  const user = await prisma.user.update({
-    where: { id: request.user.sub },
-    data: updateData,
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      phone: true,
-      bio: true,
-      avatarUrl: true,
-      role: true,
-      preferences: true,
-      organizerName: true,
-      organizerSlug: true,
-      emailVerified: true,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.update({
+      where: { id: request.user.sub },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        bio: true,
+        avatarUrl: true,
+        role: true,
+        preferences: true,
+        organizerName: true,
+        organizerSlug: true,
+        emailVerified: true,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const fields = (error.meta?.target as string[]) ?? [];
+      if (fields.includes("phone")) {
+        return errorResponse({ message: "That phone number is already linked to another account.", status: 409 });
+      }
+      if (fields.includes("organizerSlug")) {
+        return errorResponse({ message: "That organizer name is already taken. Please choose a different name.", status: 409 });
+      }
+      return errorResponse({ message: "A value you provided is already in use by another account.", status: 409 });
+    }
+    throw error;
+  }
 
   // If role was upgraded, issue fresh tokens so JWT reflects the new role
   const roleChanged = updateData.role && updateData.role !== request.user.role;
