@@ -356,9 +356,9 @@ export default function Home() {
             : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        <div className="max-w-6xl mx-auto px-4 py-2">
+        <div className="max-w-6xl mx-auto px-4 py-3">
           <form onSubmit={handleStickySearch} className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-3 py-2 min-w-0">
+            <div className="flex-1 flex items-center gap-2 bg-muted rounded-lg px-3 py-2.5 min-w-0">
               <Search size={16} className="text-muted-foreground shrink-0" />
               <input
                 type="text"
@@ -376,7 +376,7 @@ export default function Home() {
 
             <button
               type="submit"
-              className="shrink-0 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+              className="shrink-0 px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
             >
               Search
             </button>
