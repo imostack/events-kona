@@ -979,8 +979,8 @@ export default function SettingsPage() {
 
                           <div>
                             <label className="block text-sm font-semibold text-foreground mb-2">Profile URL</label>
-                            <div className="flex">
-                              <span className="inline-flex items-center px-4 py-2 border border-r-0 border-border rounded-l-lg bg-muted text-muted-foreground text-sm">
+                            <div className="flex min-w-0">
+                              <span className="shrink-0 inline-flex items-center px-4 py-2 border border-r-0 border-border rounded-l-lg bg-muted text-muted-foreground text-sm whitespace-nowrap">
                                 eventskona.com/organizer/
                               </span>
                               <input
@@ -988,7 +988,7 @@ export default function SettingsPage() {
                                 value={organizerData.organizerSlug}
                                 onChange={(e) => setOrganizerData({...organizerData, organizerSlug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
                                 placeholder="your-name"
-                                className="flex-1 px-4 py-2 border border-border rounded-r-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="min-w-0 flex-1 px-4 py-2 border border-border rounded-r-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                               />
                             </div>
                           </div>
@@ -1019,50 +1019,50 @@ export default function SettingsPage() {
                           <div>
                             <label className="block text-sm font-semibold text-foreground mb-3">Social Media Links</label>
                             <div className="space-y-3">
-                              <div className="flex items-center gap-3">
-                                <span className="w-24 text-sm text-muted-foreground">Twitter/X</span>
-                                <div className="flex-1 flex">
-                                  <span className="inline-flex items-center px-3 py-2 border border-r-0 border-border rounded-l-lg bg-muted text-muted-foreground text-sm">@</span>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="shrink-0 w-20 text-sm text-muted-foreground">Twitter/X</span>
+                                <div className="flex-1 flex min-w-0">
+                                  <span className="shrink-0 inline-flex items-center px-3 py-2 border border-r-0 border-border rounded-l-lg bg-muted text-muted-foreground text-sm">@</span>
                                   <input
                                     type="text"
                                     value={organizerData.twitter}
                                     onChange={(e) => setOrganizerData({...organizerData, twitter: e.target.value})}
                                     placeholder="username"
-                                    className="flex-1 px-4 py-2 border border-border rounded-r-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="min-w-0 flex-1 px-4 py-2 border border-border rounded-r-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                   />
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <span className="w-24 text-sm text-muted-foreground">Instagram</span>
-                                <div className="flex-1 flex">
-                                  <span className="inline-flex items-center px-3 py-2 border border-r-0 border-border rounded-l-lg bg-muted text-muted-foreground text-sm">@</span>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="shrink-0 w-20 text-sm text-muted-foreground">Instagram</span>
+                                <div className="flex-1 flex min-w-0">
+                                  <span className="shrink-0 inline-flex items-center px-3 py-2 border border-r-0 border-border rounded-l-lg bg-muted text-muted-foreground text-sm">@</span>
                                   <input
                                     type="text"
                                     value={organizerData.instagram}
                                     onChange={(e) => setOrganizerData({...organizerData, instagram: e.target.value})}
                                     placeholder="username"
-                                    className="flex-1 px-4 py-2 border border-border rounded-r-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="min-w-0 flex-1 px-4 py-2 border border-border rounded-r-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                   />
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <span className="w-24 text-sm text-muted-foreground">LinkedIn</span>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="shrink-0 w-20 text-sm text-muted-foreground">LinkedIn</span>
                                 <input
                                   type="url"
                                   value={organizerData.linkedin}
                                   onChange={(e) => setOrganizerData({...organizerData, linkedin: e.target.value})}
                                   placeholder="https://linkedin.com/company/..."
-                                  className="flex-1 px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                  className="min-w-0 flex-1 px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                               </div>
                             </div>
                           </div>
 
                           {organizerData.organizerSlug && (
-                            <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
-                              <div>
+                            <div className="bg-muted rounded-lg p-4 flex items-center justify-between gap-3 min-w-0">
+                              <div className="min-w-0">
                                 <p className="text-sm text-muted-foreground">Your public profile</p>
-                                <p className="font-medium text-foreground">eventskona.com/organizer/{organizerData.organizerSlug}</p>
+                                <p className="font-medium text-foreground truncate">eventskona.com/organizer/{organizerData.organizerSlug}</p>
                               </div>
                               <Link href={`/organizer/${organizerData.organizerSlug}`} target="_blank">
                                 <button className="flex items-center gap-2 text-primary hover:text-primary/80">
