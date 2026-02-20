@@ -130,6 +130,18 @@ export default function SettingsPage() {
   const [wasOriginallyOrganizer, setWasOriginallyOrganizer] = useState(false)
   // Prevent loadUserData from re-running when user object reference changes (e.g. after updateUser)
   const hasLoadedRef = useRef(false)
+  // Ref for the content panel — used to scroll into view on mobile when a tab is selected
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  const handleTabChange = (tab: SettingsTab) => {
+    setActiveTab(tab)
+    // On mobile (< lg breakpoint) the nav and content stack vertically, so scroll down to content
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setTimeout(() => {
+        contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 50)
+    }
+  }
 
   // Load user data — phase 1 pre-populates immediately from auth context (no API),
   // phase 2 silently refreshes with full server data in the background.
@@ -758,7 +770,7 @@ export default function SettingsPage() {
                   ].map((tab) => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as SettingsTab)}
+                      onClick={() => handleTabChange(tab.id as SettingsTab)}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                         activeTab === tab.id
                           ? "bg-primary text-primary-foreground"
@@ -773,7 +785,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Main Content */}
-              <div className="lg:col-span-3">
+              <div ref={contentRef} className="lg:col-span-3">
                 <div className="bg-card border border-border rounded-lg p-6">
                   {saveSuccess && (
                     <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
